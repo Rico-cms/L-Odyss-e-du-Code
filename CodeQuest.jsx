@@ -25,7 +25,7 @@ const LEVELS_DATA = {
     goal: { x: 4, y: 2 },
     obstacles: [{ x: 1, y: 0 }, { x: 1, y: 1 }, { x: 1, y: 3 }, { x: 1, y: 4 }],
     maxBlocks: 5,
-    par: 4,
+    par: 4, 
     availableTools: ['move', 'left', 'right'],
     initialCode: [],
     hint: "Utilise plusieurs blocs 'Avancer' pour traverser.",
@@ -137,19 +137,19 @@ const LEVELS_DATA = {
     start: { x: 0, y: 5, dir: 0 },
     goal: { x: 5, y: 0 },
     obstacles: [
-       {x:0, y:3}, {x:0, y:2}, {x:0, y:1}, {x:0, y:0},
-       {x:1, y:5}, {x:1, y:2}, {x:1, y:1}, {x:1, y:0},
-       {x:2, y:5}, {x:2, y:4}, {x:2, y:1}, {x:2, y:0},
+       {x:0, y:4}, {x:0, y:3}, {x:0, y:2}, {x:0, y:1}, {x:0, y:0},
+       {x:1, y:5}, {x:1, y:3}, {x:1, y:2}, {x:1, y:1}, {x:1, y:0},
+       {x:2, y:5}, {x:2, y:4}, {x:2, y:2}, {x:2, y:1}, {x:2, y:0},
        {x:3, y:5}, {x:3, y:4}, {x:3, y:3}, {x:3, y:0},
        {x:4, y:5}, {x:4, y:4}, {x:4, y:3}, {x:4, y:2},
        {x:5, y:5}, {x:5, y:4}, {x:5, y:3}, {x:5, y:2}, {x:5, y:1},
     ],
-    maxBlocks: 6, 
+    maxBlocks: 6,
     par: 5,
     availableTools: ['func_stairs'],
     initialCode: [],
     hint: "Le motif se répète 5 fois. Utilise la super-fonction 'Marche' !",
-    pedagogy: { concept: "Les Fonctions", explanation: "Une commande qui en contient plusieurs autres.", realWorld: "Abstraction de code." }
+    pedagogy: { concept: "Les Fonctions", explanation: "Une commande qui en contient 4 autres.", realWorld: "Abstraction de code." }
   },
   11: {
     gridSize: 7,
@@ -184,6 +184,7 @@ const LEVELS_DATA = {
     items: [{ x: 7, y: 7, type: 'crystal' }],
     gate: { x: 7, y: 1, req: 1 }, 
     teleporters: [{ x: 0, y: 0, targetX: 7, targetY: 6 }],
+    switches: [],
     maxBlocks: 20,
     par: 9,
     availableTools: ['move', 'left', 'right', 'dash', 'auto_path', 'collect', 'func_stairs'],
@@ -206,7 +207,6 @@ const Button = ({ children, onClick, variant = 'primary', className = '', disabl
     orange: "bg-orange-500 hover:bg-orange-400 text-white border-b-4 border-orange-700",
     cyan: "bg-cyan-500 hover:bg-cyan-400 text-white border-b-4 border-cyan-700",
     teal: "bg-teal-600 hover:bg-teal-500 text-white border-b-4 border-teal-800",
-    ghost: "bg-transparent text-slate-400 hover:text-white"
   };
 
   return (
@@ -243,7 +243,7 @@ export default function CodeQuestApp() {
   const [gameStatus, setGameStatus] = useState('idle');
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [stars, setStars] = useState(0); 
-  const [showCode, setShowCode] = useState(false);
+  const [showCode, setShowCode] = useState(false); 
 
   const currentLevelData = activeModule === 99 ? customLevel : (LEVELS_DATA[activeModule] || LEVELS_DATA[1]);
 
@@ -310,7 +310,7 @@ export default function CodeQuestApp() {
     const goalIdx = editorGrid.findIndex(c => c.type === 'goal');
     
     if (startIdx === -1 || goalIdx === -1) {
-      alert("Il faut un Départ (🚀) et une Arrivée (⭐) !");
+      alert("Il faut un Départ (D) et une Arrivée (A) !");
       return;
     }
 
@@ -341,11 +341,11 @@ export default function CodeQuestApp() {
       availableTools: ['move', 'left', 'right', 'dash', 'collect'],
       initialCode: [],
       hint: "Ton niveau personnalisé !",
-      pedagogy: { concept: "Création", explanation: "Tu es le concepteur.", realWorld: "Game Design." }
+      pedagogy: { concept: "Création", explanation: "Tu es le concepteur du jeu.", realWorld: "Game Design." }
     };
 
     setCustomLevel(newLevel);
-    setActiveModule(99); 
+    setActiveModule(99);
     setView('level');
   };
 
@@ -402,11 +402,9 @@ export default function CodeQuestApp() {
     setRobotState(currentRobot);
     setLevelState(currentLevelState);
     await new Promise(r => setTimeout(r, 500));
-
     for (let i = 0; i < program.length; i++) {
       const command = program[i];
       let stepsToExecute = [command];
-
       if (command.type === 'dash') {
         stepsToExecute = [];
         let limit = 0;
@@ -418,7 +416,8 @@ export default function CodeQuestApp() {
            stepsToExecute.push({ type: 'internal_move' }); 
            limit++;
         }
-      } else if (command.type === 'if_wall_right') {
+      }
+      else if (command.type === 'if_wall_right') {
         stepsToExecute = [];
         const next = getNextPos(currentRobot);
         if (checkCollision(next.x, next.y, currentLevelState)) {
@@ -426,7 +425,8 @@ export default function CodeQuestApp() {
         } else {
            stepsToExecute.push({ type: 'internal_move' });
         }
-      } else if (command.type === 'auto_path') {
+      }
+      else if (command.type === 'auto_path') {
          stepsToExecute = [];
          let limit = 0;
          let probeRobot = { ...currentRobot };
@@ -438,13 +438,22 @@ export default function CodeQuestApp() {
              limit++;
          }
          const rightDir = (probeRobot.dir + 1) % 4;
-         if (!checkCollision(...Object.values(getNextPos({ ...probeRobot, dir: rightDir })), currentLevelState)) stepsToExecute.push({ type: 'right' });
-         else stepsToExecute.push({ type: 'left' });
-      } else if (command.type === 'func_stairs') {
+         const nextRight = getNextPos({ ...probeRobot, dir: rightDir });
+         const leftDir = (probeRobot.dir + 3) % 4;
+         const nextLeft = getNextPos({ ...probeRobot, dir: leftDir });
+         if (!checkCollision(nextRight.x, nextRight.y, currentLevelState)) {
+             stepsToExecute.push({ type: 'right' });
+         } else if (!checkCollision(nextLeft.x, nextLeft.y, currentLevelState)) {
+             stepsToExecute.push({ type: 'left' });
+         }
+      }
+      else if (command.type === 'func_stairs') {
         stepsToExecute = [{ type: 'internal_move' }, { type: 'right' }, { type: 'internal_move' }, { type: 'left' }];
-      } else if (command.type === 'send_clone') {
+      }
+      else if (command.type === 'send_clone') {
          stepsToExecute = [];
-         let cloneProbe = { ...currentRobot };
+         const cloneStart = { ...currentRobot, isClone: true };
+         let cloneProbe = { ...cloneStart };
          let cloneSteps = [];
          let limit = 0;
          while (limit < currentLevelData.gridSize) {
@@ -454,7 +463,10 @@ export default function CodeQuestApp() {
             cloneSteps.push({ ...cloneProbe });
             limit++;
          }
-         if (cloneSteps.length === 0) setFeedbackMsg("Le clone est bloqué !");
+         if (cloneSteps.length === 0) {
+            setFeedbackMsg("Le clone est bloqué par un obstacle !");
+            await new Promise(r => setTimeout(r, 500));
+         }
          for (const stepPos of cloneSteps) {
              currentLevelState.clones = [stepPos];
              setLevelState({...currentLevelState});
@@ -466,48 +478,61 @@ export default function CodeQuestApp() {
          currentLevelState.clones = [];
          setLevelState({...currentLevelState});
       }
-
       for (let step of stepsToExecute) {
         if (step.type === 'collect' || step.type === 'interact') {
            const res = await handleTileInteraction(currentRobot, currentLevelState);
            currentLevelState = res.newState;
            setLevelState({...currentLevelState});
-        } else if (step.type === 'move' || step.type === 'internal_move') {
+           if (res.actionHappened) await new Promise(r => setTimeout(r, 200));
+        }
+        else if (step.type === 'move' || step.type === 'internal_move') {
           const next = getNextPos(currentRobot);
           const collision = checkCollision(next.x, next.y, currentLevelState);
           if (collision) {
             setGameStatus('failure');
-            setFeedbackMsg(collision === 'GATE_LOCKED' ? "Cristal requis !" : "BOUM !");
+            if (collision === 'GATE_LOCKED') setFeedbackMsg("Porte fermée ! Il manque des cristaux.");
+            else if (collision === 'DOOR_CLOSED') setFeedbackMsg("Passage bloqué ! Active l'interrupteur.");
+            else setFeedbackMsg("BOUM ! Obstacle détecté.");
             setIsRunning(false);
             return;
           }
           currentRobot = { ...currentRobot, ...next };
           const teleporter = currentLevelData.teleporters?.find(tp => tp.x === currentRobot.x && tp.y === currentRobot.y);
-          if (teleporter) currentRobot = { ...currentRobot, x: teleporter.targetX, y: teleporter.targetY };
-        } else if (step.type === 'left') currentRobot = { ...currentRobot, dir: (currentRobot.dir + 3) % 4 };
-        else if (step.type === 'right') currentRobot = { ...currentRobot, dir: (currentRobot.dir + 1) % 4 };
-
+          if (teleporter) {
+             await new Promise(r => setTimeout(r, 200));
+             currentRobot = { ...currentRobot, x: teleporter.targetX, y: teleporter.targetY };
+          }
+        } 
+        else if (step.type === 'left') {
+          currentRobot = { ...currentRobot, dir: (currentRobot.dir + 3) % 4 };
+        } 
+        else if (step.type === 'right') {
+          currentRobot = { ...currentRobot, dir: (currentRobot.dir + 1) % 4 };
+        }
         setRobotState(currentRobot);
         await new Promise(r => setTimeout(r, step.type === 'internal_move' ? 150 : 500)); 
       }
     }
-
     if (currentRobot.x === currentLevelData.goal.x && currentRobot.y === currentLevelData.goal.y) {
       setGameStatus('success');
-      const par = currentLevelData.par || 99;
-      let earnedStars = program.length <= par ? 3 : (program.length <= par + 2 ? 2 : 1);
+      const par = currentLevelData.par || program.length + 2;
+      let earnedStars = 1;
+      if (program.length <= par) earnedStars = 3;
+      else if (program.length <= par + 2) earnedStars = 2;
       setStars(earnedStars);
-      setFeedbackMsg(`REUSSI ! (${earnedStars} ⭐)`);
-      if (activeModule !== 99) setUnlockedModules([...new Set([...unlockedModules, activeModule + 1])]);
+      setFeedbackMsg(`OBJECTIF ATTEINT ! (${earnedStars} étoiles)`);
+      if (!unlockedModules.includes(activeModule + 1) && activeModule !== 99) {
+        setUnlockedModules([...unlockedModules, activeModule + 1]);
+      }
     } else {
       setGameStatus('failure');
-      setFeedbackMsg("Échec.");
+      setFeedbackMsg("Programme terminé. Objectif non atteint.");
     }
     setIsRunning(false);
   };
 
   const generateRealCode = () => {
-    if (program.length === 0) return "// Le programme est vide\n// Ajoute des blocs !";
+    if (program.length === 0) return "// Le programme est vide\n// Ajoutez des blocs pour commencer !";
     return program.map(block => {
       switch(block.type) {
         case 'move': return 'robot.avancer();';
@@ -517,8 +542,8 @@ export default function CodeQuestApp() {
         case 'collect': return 'robot.ramasser();';
         case 'interact': return 'robot.actionner();';
         case 'if_wall_right': return `if (robot.detecteMurDevant()) {\n  robot.tournerDroite();\n} else {\n  robot.avancer();\n}`;
-        case 'func_stairs': return `monter_escalier(); // Fonction Macro`;
-        case 'send_clone': return `// Thread parallèle\nconst clone = robot.envoyerClone();`;
+        case 'func_stairs': return `monter_escalier(); // Macro`;
+        case 'send_clone': return `const clone = new RobotClone();\nclone.avancerJusquObstacle();`;
         case 'auto_path': return `robot.navigationAuto();`;
         default: return '// Action inconnue';
       }
@@ -546,7 +571,7 @@ export default function CodeQuestApp() {
       case 'move': return 'Avancer';
       case 'left': return 'Gauche';
       case 'right': return 'Droite';
-      case 'dash': return 'Dash (Boucle)';
+      case 'dash': return 'Dash (Tant Que)';
       case 'if_wall_right': return 'Si Mur → Droite';
       case 'auto_path': return 'Auto-Pilote';
       case 'collect': return 'Ramasser';
@@ -555,6 +580,17 @@ export default function CodeQuestApp() {
       case 'send_clone': return 'Envoi Clone';
       default: return 'Action';
     }
+  };
+
+  const getBlockColor = (type) => {
+     if (['dash'].includes(type)) return 'bg-orange-600 border-orange-500 text-orange-100';
+     if (['func_stairs', 'send_clone'].includes(type)) return 'bg-orange-600 border-orange-500 text-orange-100';
+     if (['if_wall_right'].includes(type)) return 'bg-purple-600 border-purple-500 text-purple-100';
+     if (['auto_path'].includes(type)) return 'bg-cyan-600 border-cyan-500 text-cyan-100';
+     if (['collect'].includes(type)) return 'bg-emerald-600 border-emerald-500 text-emerald-100';
+     if (['interact'].includes(type)) return 'bg-teal-600 border-teal-500 text-teal-100';
+     if (['left', 'right'].includes(type)) return 'bg-indigo-600 border-indigo-500 text-indigo-100';
+     return 'bg-blue-600 border-blue-500 text-blue-100';
   };
 
   if (view === 'menu') {
@@ -571,10 +607,12 @@ export default function CodeQuestApp() {
           <h1 className="text-5xl md:text-7xl font-extrabold mb-4 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
             CODE QUEST
           </h1>
-          <p className="text-xl md:text-2xl text-slate-400 mb-8">Apprends à coder en jouant.</p>
+          <p className="text-xl md:text-2xl text-slate-400 mb-2">Apprends à coder en jouant.</p>
+          <p className="text-indigo-400 font-medium italic mb-8">Créé par Emrick DAHISSIHO</p>
+          
           <div className="flex justify-center gap-4">
             <Button onClick={() => setView('map')} className="text-xl py-4 px-8">Aventure</Button>
-            <Button onClick={() => setView('editor')} variant="secondary" className="text-xl py-4 px-8"><Edit size={24}/> Créer</Button>
+            <Button onClick={() => setView('editor')} variant="secondary" className="text-xl py-4 px-8"><Edit size={24}/> Créer Niveau</Button>
           </div>
         </div>
       </div>
@@ -585,7 +623,7 @@ export default function CodeQuestApp() {
     return (
       <div className="min-h-screen bg-slate-900 text-white flex flex-col p-4 md:p-8 font-sans">
          <header className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold flex items-center gap-3"><Edit /> Éditeur</h2>
+            <h2 className="text-3xl font-bold flex items-center gap-3"><Edit /> Éditeur de Niveau</h2>
             <div className="flex gap-2">
                <Button onClick={() => setView('menu')} variant="ghost">Annuler</Button>
                <Button onClick={saveAndPlayCustomLevel} variant="success"><Play size={20}/> Tester</Button>
@@ -620,7 +658,7 @@ export default function CodeQuestApp() {
                      <button onClick={() => setEditorTool('crystal')} className={`p-3 rounded border-b-4 font-bold flex flex-col items-center ${editorTool === 'crystal' ? 'bg-purple-600 border-purple-800' : 'bg-purple-700 border-purple-900'}`}><Gem size={20}/> Cristal</button>
                      <button onClick={() => setEditorTool('start')} className={`p-3 rounded border-b-4 font-bold flex flex-col items-center ${editorTool === 'start' ? 'bg-indigo-600 border-indigo-800' : 'bg-indigo-700 border-indigo-900'}`}>🚀 Départ</button>
                      <button onClick={() => setEditorTool('goal')} className={`p-3 rounded border-b-4 font-bold flex flex-col items-center ${editorTool === 'goal' ? 'bg-yellow-600 border-yellow-800' : 'bg-yellow-700 border-yellow-900'}`}>⭐ Arrivée</button>
-                     <button onClick={() => setEditorTool('empty')} className={`p-3 rounded border-b-4 font-bold flex flex-col items-center col-span-2 bg-red-700 border-red-900`}><Trash2 size={20}/> Effacer</button>
+                     <button onClick={() => setEditorTool('empty')} className={`p-3 rounded border-b-4 font-bold flex flex-col items-center col-span-2 ${editorTool === 'empty' ? 'bg-red-600 border-red-800' : 'bg-red-700 border-red-900'}`}><Trash2 size={20}/> Gomme</button>
                   </div>
                </div>
             </div>
@@ -652,15 +690,20 @@ export default function CodeQuestApp() {
   }
 
   if (view === 'level') {
-    const activeModuleInfo = activeModule === 99 ? { title: "Niveau Joueur", desc: "Création libre" } : MODULES.find(m => m.id === activeModule);
+    const activeModuleInfo = activeModule === 99 ? { title: "Niveau Personnalisé", desc: "Création joueur" } : MODULES.find(m => m.id === activeModule);
     return (
       <div className="min-h-screen bg-slate-900 text-white flex flex-col font-sans">
         <header className="bg-slate-800 border-b border-slate-700 p-4 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-4">
-            <Button variant="secondary" onClick={() => setView(activeModule === 99 ? 'editor' : 'map')} className="!py-1 !px-3 text-sm"><ChevronRight className="rotate-180" size={16} /> Retour</Button>
+            <Button variant="secondary" onClick={() => setView(activeModule === 99 ? 'editor' : 'map')} className="!py-1 !px-3 text-sm"><ChevronRight className="rotate-180" size={16} /> {activeModule === 99 ? 'Éditeur' : 'Carte'}</Button>
             <div><h2 className="text-xl font-bold text-indigo-400">{activeModuleInfo.title}</h2><p className="text-xs text-slate-400">{activeModuleInfo.desc}</p></div>
           </div>
-          <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            {currentLevelData.items && (
+              <div className="bg-emerald-900/50 px-3 py-1 rounded text-sm text-emerald-300 font-bold border border-emerald-700">
+                Cristaux: {levelState.itemsCollected} / {currentLevelData.gate?.req || currentLevelData.items.length}
+              </div>
+            )}
             <div className="bg-slate-900 px-4 py-2 rounded-lg text-sm border border-slate-700 font-bold text-emerald-400">
                Mémoire: {program.length} / {currentLevelData.maxBlocks}
             </div>
@@ -668,18 +711,28 @@ export default function CodeQuestApp() {
         </header>
 
         <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+          
           {gameStatus === 'success' && (
-            <div className="absolute inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4">
-              <div className="bg-slate-800 border-2 border-emerald-500/50 rounded-2xl p-8 max-w-lg text-center shadow-2xl">
+            <div className="absolute inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+              <div className="bg-slate-800 border-2 border-emerald-500/50 rounded-2xl p-6 md:p-8 max-w-lg text-center shadow-2xl relative overflow-hidden">
+                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
                  <div className="mb-6 flex justify-center flex-col items-center">
-                   <CheckCircle className="w-16 h-16 text-emerald-400 mb-4" />
-                   <div className="flex gap-2 mb-4">
-                      {[1, 2, 3].map(s => <Star key={s} size={40} className={`transition-all ${s <= stars ? 'text-yellow-400 fill-yellow-400 scale-110' : 'text-slate-700'}`} />)}
+                   <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center animate-bounce mb-4">
+                     <CheckCircle className="w-10 h-10 text-emerald-400" />
+                   </div>
+                   <div className="flex gap-2">
+                      {[1, 2, 3].map(s => (
+                        <Star key={s} size={40} className={`transition-all duration-500 ${s <= stars ? 'text-yellow-400 fill-yellow-400 scale-110' : 'text-slate-600'}`} />
+                      ))}
                    </div>
                  </div>
-                 <h2 className="text-3xl font-bold text-white mb-2">Victoire !</h2>
-                 <p className="text-slate-400 mb-6">Blocs utilisés : {program.length} (Optimal : {currentLevelData.par})</p>
-                 <Button onClick={() => setView('map')} variant="success" className="w-full py-4 text-lg">Continuer</Button>
+                 <h2 className="text-3xl font-bold text-white mb-2">Niveau Complété !</h2>
+                 {currentLevelData.par && (
+                   <p className="text-slate-400 text-sm mb-4">Blocs utilisés: <span className="text-white font-bold">{program.length}</span> (Objectif: {currentLevelData.par})</p>
+                 )}
+                 <Button onClick={() => setView('map')} variant="success" className="w-full py-4 text-lg shadow-emerald-500/20">
+                   Continuer l'aventure <ChevronRight />
+                 </Button>
               </div>
             </div>
           )}
@@ -693,57 +746,84 @@ export default function CodeQuestApp() {
                   const isObstacle = currentLevelData.obstacles?.some(o => o.x === x && o.y === y);
                   const isGoal = currentLevelData.goal.x === x && currentLevelData.goal.y === y;
                   const isRobot = robotState.x === x && robotState.y === y;
-                  const isItem = currentLevelData.items?.find(it => it.x === x && it.y === y && !levelState.collectedItemsIds.includes(`${x}-${y}`));
+                  const isItem = currentLevelData.items?.find(it => it.x === x && it.y === y);
+                  const isCollected = isItem && levelState.collectedItemsIds.includes(`${x}-${y}`);
+                  const isGate = currentLevelData.gate && currentLevelData.gate.x === x && currentLevelData.gate.y === y;
+                  const gateOpen = isGate && levelState.itemsCollected >= currentLevelData.gate.req;
+                  const isTeleporter = currentLevelData.teleporters?.find(tp => tp.x === x && tp.y === y);
+                  const isSwitch = currentLevelData.switches?.find(s => s.x === x && s.y === y);
                   const door = currentLevelData.doors?.find(d => d.x === x && d.y === y);
                   const isDoorOpen = door && levelState.doorsOpen.includes(door.id);
                   const isClone = levelState.clones?.find(c => c.x === x && c.y === y);
-                  const isSwitch = currentLevelData.switches?.find(s => s.x === x && s.y === y);
 
                   return (
-                    <div key={i} className={`w-10 h-10 md:w-14 md:h-14 rounded flex items-center justify-center text-xl relative ${isObstacle ? 'bg-slate-700' : 'bg-slate-800/50 border border-slate-700/30'}`}>
+                    <div key={i} className={`w-10 h-10 md:w-14 md:h-14 rounded flex items-center justify-center text-xl relative transition-all duration-300
+                       ${isObstacle ? 'bg-slate-700 shadow-inner border border-slate-600' : 'bg-slate-800/50 border border-slate-700/30'}
+                       ${isGoal ? 'ring-2 ring-yellow-500/50 bg-yellow-500/10' : ''}
+                       ${isTeleporter ? 'bg-blue-900/40 border-blue-500/30 ring-1 ring-blue-500/50' : ''}
+                       ${isGate && !gateOpen ? 'bg-slate-700 border-red-500/50' : ''}
+                       ${door && !isDoorOpen ? 'bg-slate-700 border-l-4 border-red-500' : ''}
+                    `}>
+                      <span className="absolute top-0.5 left-1 text-[8px] text-slate-600 opacity-50 font-mono">{x},{y}</span>
                       {isObstacle && "🧱"}
-                      {isItem && <Gem className="text-purple-400 animate-bounce" size={20} />}
-                      {isGoal && !isRobot && <Star className="text-yellow-500 fill-yellow-500" size={24} />}
-                      {door && !isDoorOpen && <DoorClosed className="text-red-500" />}
-                      {door && isDoorOpen && <DoorOpen className="text-emerald-500 opacity-50" />}
-                      {isSwitch && <div className={`w-4 h-4 rounded-full ${levelState.doorsOpen.includes(isSwitch.linkId) ? 'bg-green-500' : 'bg-red-500'}`}></div>}
-                      {isRobot && <div className="text-indigo-400 transition-all duration-300" style={{ transform: `rotate(${robotState.dir * 90}deg)` }}>🚀</div>}
-                      {isClone && <div className="text-orange-400 opacity-70" style={{ transform: `rotate(${isClone.dir * 90}deg)` }}>🤖</div>}
+                      {isItem && !isCollected && <Gem className="text-purple-400 animate-bounce" size={20} />}
+                      {isGate && !gateOpen && <Lock className="text-red-400" size={20} />}
+                      {isGate && gateOpen && <div className="w-full h-full bg-emerald-500/20 absolute"></div>}
+                      {isTeleporter && <Radio className="text-blue-400 animate-pulse" size={20} />}
+                      {isSwitch && <div className={`w-6 h-6 rounded-full border-4 ${levelState.doorsOpen.includes(isSwitch.linkId) ? 'border-green-500 bg-green-900' : 'border-red-500 bg-red-900'}`}></div>}
+                      {door && !isDoorOpen && <DoorClosed className="text-red-400" size={24} />}
+                      {door && isDoorOpen && <DoorOpen className="text-emerald-500 opacity-50" size={24} />}
+                      {isGoal && !isRobot && <Star className="text-yellow-400 animate-pulse" size={20} fill="currentColor" />}
+                      {isRobot && <div className="text-indigo-400 transition-transform duration-300 z-10 drop-shadow-lg" style={{ transform: `rotate(${robotState.dir * 90}deg)` }}>🚀</div>}
+                      {isClone && <div className="text-orange-400 transition-transform duration-300 z-10 drop-shadow-lg opacity-70" style={{ transform: `rotate(${isClone.dir * 90}deg)` }}>🤖</div>}
                     </div>
                   );
                 })}
               </div>
             </div>
-            <div className="mt-6 px-6 py-3 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 font-bold">
-              {feedbackMsg || "Prêt au décollage !"}
-            </div>
+            {gameStatus !== 'success' && (
+              <div className={`mt-6 px-6 py-3 rounded-lg flex items-center gap-3 font-bold border transition-all ${gameStatus === 'running' ? 'border-indigo-500/50 bg-indigo-900/20 text-indigo-300' : gameStatus === 'failure' ? 'border-rose-500/50 bg-rose-900/20 text-rose-300' : 'border-slate-700 bg-slate-800 text-slate-400'}`}>
+                  {gameStatus === 'running' ? <RefreshCw className="animate-spin" /> : gameStatus === 'failure' ? <XCircle /> : <Info />}
+                  {feedbackMsg || "En attente..."}
+              </div>
+            )}
           </div>
 
           <div className="w-full md:w-96 bg-slate-800 border-l border-slate-700 flex flex-col shadow-2xl z-10">
             <div className="p-4 border-b border-slate-700 bg-slate-800/90">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Outils</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Outils Disponibles</h3>
               <div className="grid grid-cols-2 gap-2">
                 {currentLevelData.availableTools.map(tool => (
-                   <button key={tool} onClick={() => addBlock(tool)} disabled={isRunning} className="p-2 rounded bg-blue-600 text-white font-bold text-sm flex items-center gap-2 hover:bg-blue-500">
+                   <button key={tool} onClick={() => addBlock(tool)} disabled={isRunning}
+                    className={`p-3 rounded-lg border-b-4 font-bold flex items-center justify-center gap-2 text-sm transition-all active:translate-y-1 disabled:opacity-50 ${tool === 'dash' ? 'bg-orange-600 border-orange-800' : tool.startsWith('func') ? 'bg-orange-600 border-orange-800' : tool === 'send_clone' ? 'bg-orange-600 border-orange-800' : tool === 'if_wall_right' ? 'bg-purple-600 border-purple-800' : tool === 'auto_path' ? 'bg-cyan-600 border-cyan-800' : tool === 'collect' ? 'bg-emerald-600 border-emerald-800' : tool === 'interact' ? 'bg-teal-600 border-teal-800' : 'bg-blue-600 border-blue-800'} text-white`}>
                     {renderBlockIcon(tool)} {renderBlockLabel(tool)}
                    </button>
                 ))}
               </div>
             </div>
-            <div className="flex-1 p-4 overflow-y-auto bg-slate-900/50">
+
+            <div className="flex-1 p-4 overflow-y-auto bg-slate-900/50 relative">
                <div className="flex justify-between items-center mb-2">
-                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Programme</h3>
-                 <button onClick={() => setShowCode(!showCode)} className="text-xs text-indigo-400 flex items-center gap-1">
-                   {showCode ? <EyeOff size={12}/> : <Eye size={12}/>} {showCode ? 'Blocs' : 'Voir Code'}
-                 </button>
+                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                   <Terminal size={12}/> Programme
+                 </h3>
+                 <div className="flex gap-2">
+                   <button onClick={() => setShowCode(!showCode)} className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                     {showCode ? <EyeOff size={12}/> : <Eye size={12}/>} {showCode ? 'Blocs' : 'Code'}
+                   </button>
+                   <button onClick={() => setProgram([])} className="text-xs text-rose-400 hover:underline">Effacer</button>
+                 </div>
                </div>
-               <div className="space-y-2 min-h-[200px] border-2 border-dashed border-slate-700 rounded-xl p-2">
+               <div className="space-y-2 min-h-[200px] border-2 border-dashed border-slate-700 rounded-xl p-2 bg-slate-900/50">
+                 {program.length === 0 && <div className="text-center text-slate-600 italic text-sm mt-10">Zone vide</div>}
                  {showCode ? (
-                   <pre className="text-xs font-mono text-green-400 p-2 whitespace-pre-wrap leading-relaxed">{generateRealCode()}</pre>
+                   <pre className="text-xs font-mono text-green-400 p-2 whitespace-pre-wrap leading-relaxed">
+                     {generateRealCode()}
+                   </pre>
                  ) : (
                    program.map((block, index) => (
-                     <div key={block.id} className="p-3 rounded bg-blue-600/20 border-l-4 border-blue-500 flex justify-between items-center">
-                       <span className="font-bold text-sm flex items-center gap-2">{renderBlockIcon(block.type)} {renderBlockLabel(block.type)}</span>
+                     <div key={block.id} className={`p-3 rounded-lg flex justify-between items-center border-l-4 shadow-sm animate-in fade-in slide-in-from-right-4 duration-300 ${getBlockColor(block.type)} bg-opacity-20`}>
+                       <div className="flex items-center gap-3"><span className="text-slate-500 text-xs font-mono">{index + 1}</span><span className="font-bold text-sm flex items-center gap-2">{renderBlockIcon(block.type)} {renderBlockLabel(block.type)}</span></div>
                        <button onClick={() => removeBlock(index)} disabled={isRunning} className="text-slate-400 hover:text-rose-400"><XCircle size={16} /></button>
                      </div>
                    ))
@@ -751,8 +831,8 @@ export default function CodeQuestApp() {
                </div>
             </div>
             <div className="p-4 bg-slate-800 border-t border-slate-700 grid grid-cols-2 gap-4">
-              <Button onClick={resetSimulation} variant="secondary" disabled={isRunning} className="w-full">Reset</Button>
-              <Button onClick={runProgram} variant="success" disabled={isRunning || program.length === 0} className="w-full">Go</Button>
+              <Button onClick={resetSimulation} variant="secondary" disabled={isRunning} className="w-full"><RefreshCw size={20} /> Reset</Button>
+              <Button onClick={runProgram} variant="success" disabled={isRunning || program.length === 0} className="w-full">{isRunning ? '...' : <><Play size={20} /> Go</>}</Button>
             </div>
           </div>
         </main>

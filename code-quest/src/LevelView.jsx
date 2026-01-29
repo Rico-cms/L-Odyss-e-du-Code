@@ -10,6 +10,7 @@ export default function LevelView({
   setGameStatus,
   stars,
   setView,
+  goToNextLevel,
   robotState,
   addBlock,
   removeBlock,
@@ -66,6 +67,10 @@ export default function LevelView({
         <div className="flex items-center gap-4">
           <button onClick={() => setView(activeModuleInfo.id === 99 ? 'editor' : 'map')} className="btn-secondary !py-1 !px-3 text-sm"><ChevronRight className="rotate-180" size={16} /></button>
           <div>
+            {/* Affichage du nom du niveau */}
+            <div className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-1">
+              Niveau {currentLevelData.levelNumber || activeModuleInfo.id} : {activeModuleInfo.title}
+            </div>
             <h2 className="text-xl font-bold bg-gradient-brand bg-clip-text text-transparent">{activeModuleInfo.title}</h2>
             <p className="text-xs text-gray-400">{activeModuleInfo.desc}</p>
           </div>
@@ -125,15 +130,60 @@ export default function LevelView({
                     {gameStatus === 'success' ? 'Niveau Complété !' : 'Échec...'}
                   </h2>
                   <p className="text-gray-200 text-lg md:text-xl mb-4 min-h-6 font-semibold">{feedbackMsg || (gameStatus === 'success' ? 'Bravo !' : 'Essaie encore !')}</p>
+                  {gameStatus === 'success' && currentLevelData.pedagogy && (
+                    <div className="bg-indigo-900/60 border-l-4 border-emerald-400 rounded-xl p-4 mb-4 text-left">
+                      <div className="font-bold text-emerald-200 mb-1">Ce que tu viens de faire :</div>
+                      <div className="text-indigo-100 text-base mb-1">{currentLevelData.pedagogy.explanation}</div>
+                      {currentLevelData.pedagogy.devWorld && (
+                        <div className="text-indigo-300 text-sm italic mb-1">Dans la vie de développeur : {currentLevelData.pedagogy.devWorld}</div>
+                      )}
+                      {currentLevelData.pedagogy.takeaway && (
+                        <div className="text-emerald-300 text-base font-bold mt-2">{currentLevelData.pedagogy.takeaway}</div>
+                      )}
+                    </div>
+                  )}
                   {gameStatus === 'success' && currentLevelData.par && (
                     <p className="text-gray-300 text-base mb-4">Blocs utilisés: <span className="text-emerald-200 font-bold">{program.length}</span> (Objectif: {currentLevelData.par})</p>
                   )}
-                  <button
-                    onClick={handleRestart}
-                    className="mt-2 btn-primary text-lg px-8 py-3 rounded-2xl shadow-lg"
-                  >
-                    Recommencer
-                  </button>
+                  {/* (explication pédagogique contextualisée déjà affichée ci-dessus) */}
+                  {/* Solution de référence si disponible */}
+                  {currentLevelData.solution && (
+                    <div className="w-full text-left bg-white/10 rounded-xl p-4 my-4">
+                      <h3 className="text-lg font-bold text-emerald-200 mb-2">Solution classique :</h3>
+                      <ol className="list-decimal list-inside text-emerald-100 text-base">
+                        {currentLevelData.solution.map((block, idx) => (
+                          <li key={block.id || idx} className="mb-1">
+                            {typeof block === 'string' ? block : (block.type || JSON.stringify(block))}
+                          </li>
+                        ))}
+                      </ol>
+                      {/* Comparaison simple */}
+                      <div className="mt-2 text-sm font-semibold">
+                        {program.length === currentLevelData.solution.length
+                          ? <span className="text-emerald-300">Bravo, tu as utilisé autant d’étapes que la solution classique !</span>
+                          : program.length < currentLevelData.solution.length
+                            ? <span className="text-emerald-400">Super, tu as fait plus court que la solution classique !</span>
+                            : <span className="text-rose-300">Tu as utilisé {program.length - currentLevelData.solution.length} bloc(s) de plus que la solution classique.</span>
+                        }
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex flex-col md:flex-row gap-3 mt-2 w-full justify-center">
+                    <button
+                      onClick={handleRestart}
+                      className="btn-primary text-lg px-8 py-3 rounded-2xl shadow-lg"
+                    >
+                      Recommencer
+                    </button>
+                    {gameStatus === 'success' && typeof goToNextLevel === 'function' && (
+                      <button
+                        onClick={goToNextLevel}
+                        className="btn-success text-lg px-8 py-3 rounded-2xl shadow-lg"
+                      >
+                        Niveau suivant
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

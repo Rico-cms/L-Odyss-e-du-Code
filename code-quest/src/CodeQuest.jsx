@@ -20,6 +20,7 @@ const MODULES = [
 
 const LEVELS_DATA = {
   1: {
+    levelNumber: 1,
     gridSize: 5,
     start: { x: 0, y: 2, dir: 1 },
     goal: { x: 4, y: 2 },
@@ -29,9 +30,16 @@ const LEVELS_DATA = {
     availableTools: ['move', 'left', 'right'],
     initialCode: [],
     hint: "Utilise plusieurs blocs 'Avancer' pour traverser.",
-    pedagogy: { concept: "L'Algorithme", explanation: "Une suite d'instructions précises.", realWorld: "Comme une recette de cuisine." }
+    
+        pedagogy: {
+          concept: "L'Algorithme",
+          explanation: "Bravo ! Tu viens de créer ton tout premier programme : tu as donné des instructions précises à ton robot pour qu'il atteigne son objectif. C'est comme donner une recette à suivre, étape par étape.",
+          devWorld: "Dans le monde des développeurs, on écrit des suites d'instructions pour que l'ordinateur accomplisse une tâche. C'est la base de tout logiciel !",
+          takeaway: "À retenir : Un programme, c'est une liste d'actions à faire dans le bon ordre."
+        }
   },
   2: {
+    levelNumber: 2,
     gridSize: 5,
     start: { x: 1, y: 4, dir: 0 },
     goal: { x: 3, y: 4 },
@@ -41,9 +49,16 @@ const LEVELS_DATA = {
     availableTools: ['move', 'left', 'right'],
     initialCode: [{ id: 'bug1', type: 'move' }, { id: 'bug2', type: 'move' }, { id: 'bug3', type: 'right' }, { id: 'bug4', type: 'move' }], 
     hint: "Le mur est moins haut ! Tu peux passer par dessus (y=2).",
-    pedagogy: { concept: "Le Débuggage", explanation: "Corriger un code existant.", realWorld: "Les développeurs passent 50% de leur temps à corriger des bugs." }
+    
+        pedagogy: {
+          concept: "Le Débuggage",
+          explanation: "Félicitations ! Tu as trouvé et corrigé des erreurs dans un programme existant. C'est comme réparer une voiture pour qu'elle roule à nouveau.",
+          devWorld: "Les développeurs passent beaucoup de temps à chercher et corriger des bugs dans leur code. C'est une compétence essentielle !",
+          takeaway: "À retenir : Corriger ses erreurs, c'est normal et ça fait progresser."
+        }
   },
   3: {
+    levelNumber: 3,
     gridSize: 6,
     start: { x: 0, y: 0, dir: 1 },
     goal: { x: 5, y: 5 },
@@ -53,9 +68,16 @@ const LEVELS_DATA = {
     availableTools: ['move', 'left', 'right'],
     initialCode: [],
     hint: "Passe par le trou au centre du mur.",
-    pedagogy: { concept: "Séquence", explanation: "L'ordre des instructions est crucial.", realWorld: "Automatisation industrielle." }
+    
+        pedagogy: {
+          concept: "Séquence",
+          explanation: "Super ! Tu as compris que l'ordre des instructions change tout : avancer, tourner, puis avancer n'est pas pareil que tourner, avancer, avancer.",
+          devWorld: "En programmation, la séquence des actions est cruciale. Comme dans une recette de cuisine, il faut suivre les étapes dans le bon ordre pour réussir.",
+          takeaway: "À retenir : L'ordre des blocs compte, chaque étape a son importance."
+        }
   },
   4: {
+    levelNumber: 4,
     gridSize: 5,
     start: { x: 0, y: 0, dir: 1 },
     goal: { x: 2, y: 2 },
@@ -65,9 +87,16 @@ const LEVELS_DATA = {
     availableTools: ['move', 'left', 'right', 'if_wall_right'],
     initialCode: [],
     hint: "Défi : Faisable en 10 blocs pile !",
-    pedagogy: { concept: "Conditions", explanation: "Si... Alors...", realWorld: "Thermostat intelligent." }
+    
+        pedagogy: {
+          concept: "Conditions",
+          explanation: "Bravo ! Tu as utilisé des conditions : le robot agit différemment selon la situation. C'est comme dire 'Si j'ai faim, alors je mange.'",
+          devWorld: "Les développeurs utilisent des conditions pour que le programme prenne des décisions selon ce qui se passe.",
+          takeaway: "À retenir : Les conditions permettent d'adapter le comportement du robot à l'environnement."
+        }
   },
   5: {
+    levelNumber: 5,
     gridSize: 8,
     start: { x: 0, y: 3, dir: 1 },
     goal: { x: 7, y: 3 },
@@ -77,21 +106,35 @@ const LEVELS_DATA = {
     availableTools: ['move', 'left', 'right', 'dash'],
     initialCode: [],
     hint: "Utilise le 'Dash' pour traverser d'un coup.",
-    pedagogy: { concept: "Boucles (While)", explanation: "Répéter tant que c'est possible.", realWorld: "Traitement de listes de données." }
+    
+        pedagogy: {
+          concept: "Boucles (While)",
+          explanation: "Super ! Tu as fait répéter une action à ton robot jusqu'à ce qu'il atteigne son but. C'est comme dire 'Répète jusqu'à ce que tu arrives.'",
+          devWorld: "En programmation, les boucles servent à répéter des actions automatiquement, comme traiter une liste de données.",
+          takeaway: "À retenir : Les boucles font gagner du temps et évitent de répéter le même bloc plusieurs fois."
+        }
   },
   6: {
+    levelNumber: 6,
     gridSize: 7,
     start: { x: 1, y: 5, dir: 0 },
     goal: { x: 5, y: 1 },
     obstacles: [{x:0, y:5}, {x:0, y:4}, {x:0, y:3}, {x:0, y:2}, {x:0, y:1}, {x:2, y:5}, {x:2, y:4}, {x:2, y:3}, {x:2, y:2}, {x:4, y:4}, {x:4, y:3}, {x:4, y:2}, {x:4, y:1}, {x:6, y:5}, {x:6, y:4}, {x:6, y:3}, {x:6, y:2}, {x:6, y:1}, {x:1, y:0}, {x:3, y:6}, {x:5, y:0}, {x:5, y:6}],
-    maxBlocks: 5,
-    par: 3,
+    maxBlocks: 12,
+    par: 10,
     availableTools: ['move', 'left', 'right', 'auto_path'],
     initialCode: [],
     hint: "L'Auto-Pilote : Avance + Virage intelligent.",
-    pedagogy: { concept: "IA / Algorithme Complexe", explanation: "Déléguer la logique.", realWorld: "Voitures autonomes." }
+    
+        pedagogy: {
+          concept: "IA / Algorithme Complexe",
+          explanation: "Génial ! Tu as utilisé une commande intelligente qui décide toute seule du meilleur chemin. C'est comme un GPS qui trouve la route pour toi.",
+          devWorld: "Les développeurs créent des algorithmes capables de prendre des décisions complexes, comme les voitures autonomes.",
+          takeaway: "À retenir : On peut déléguer des tâches à des programmes intelligents."
+        }
   },
   7: {
+    levelNumber: 7,
     gridSize: 6,
     start: { x: 0, y: 0, dir: 1 },
     goal: { x: 5, y: 5 },
@@ -103,9 +146,16 @@ const LEVELS_DATA = {
     availableTools: ['move', 'left', 'right', 'collect'],
     initialCode: [],
     hint: "Ramasse les 3 cristaux pour ouvrir la porte.",
-    pedagogy: { concept: "Les Variables", explanation: "Score = Score + 1.", realWorld: "Points de vie dans les jeux." }
+    
+        pedagogy: {
+          concept: "Les Variables",
+          explanation: "Bravo ! Tu as manipulé des objets à collecter, comme des points ou des cristaux. C'est comme compter tes billes ou tes points à un jeu.",
+          devWorld: "En code, on utilise des variables pour stocker et modifier des valeurs (score, vies, etc.).",
+          takeaway: "À retenir : Les variables servent à retenir des informations qui changent."
+        }
   },
   8: {
+    levelNumber: 8,
     gridSize: 7,
     start: { x: 0, y: 3, dir: 1 },
     goal: { x: 6, y: 3 },
@@ -116,9 +166,16 @@ const LEVELS_DATA = {
     availableTools: ['move', 'left', 'right'],
     initialCode: [],
     hint: "Marche sur la dalle bleue pour te téléporter.",
-    pedagogy: { concept: "Coordonnées (X,Y)", explanation: "Déplacement instantané vers (4,3).", realWorld: "Pixels sur un écran." }
+    
+        pedagogy: {
+          concept: "Coordonnées (X,Y)",
+          explanation: "Super ! Tu as utilisé la téléportation pour déplacer ton robot à un endroit précis. C'est comme aller directement à une case sur un plateau.",
+          devWorld: "Les développeurs utilisent des coordonnées pour placer des objets sur un écran ou une carte.",
+          takeaway: "À retenir : Les coordonnées permettent de se repérer et de se déplacer précisément."
+        }
   },
   9: {
+    levelNumber: 9,
     gridSize: 6,
     start: { x: 0, y: 0, dir: 2 },
     goal: { x: 5, y: 2 },
@@ -130,9 +187,16 @@ const LEVELS_DATA = {
     availableTools: ['move', 'left', 'right', 'interact'],
     initialCode: [],
     hint: "La porte est fermée ! Active l'interrupteur en (0,2) sur ta route.",
-    pedagogy: { concept: "Les Événements", explanation: "L'action 'Actionner' déclenche l'événement 'Ouverture'.", realWorld: "Relation Cause (Clic) -> Effet (Action)." }
+    
+        pedagogy: {
+          concept: "Les Événements",
+          explanation: "Bravo ! Tu as déclenché un événement en activant un interrupteur. C'est comme appuyer sur un bouton pour allumer la lumière.",
+          devWorld: "En informatique, un événement (clic, touche, etc.) déclenche une action dans le programme.",
+          takeaway: "À retenir : Les événements relient une action à une réaction."
+        }
   },
   10: {
+    levelNumber: 10,
     gridSize: 6,
     start: { x: 0, y: 5, dir: 0 },
     goal: { x: 5, y: 0 },
@@ -149,9 +213,16 @@ const LEVELS_DATA = {
     availableTools: ['func_stairs'],
     initialCode: [],
     hint: "Le motif se répète 5 fois. Utilise la super-fonction 'Marche' !",
-    pedagogy: { concept: "Les Fonctions", explanation: "Une commande qui en contient 4 autres.", realWorld: "Abstraction de code." }
+    
+        pedagogy: {
+          concept: "Les Fonctions",
+          explanation: "Génial ! Tu as utilisé une fonction : un bloc qui regroupe plusieurs actions. C'est comme une chorégraphie que tu peux réutiliser.",
+          devWorld: "Les fonctions permettent de réutiliser du code et de simplifier les programmes.",
+          takeaway: "À retenir : Une fonction, c'est un super-bloc qui fait plusieurs choses à la fois."
+        }
   },
   11: {
+    levelNumber: 11,
     gridSize: 7,
     start: { x: 3, y: 3, dir: 1 }, 
     goal: { x: 6, y: 3 },
@@ -168,9 +239,16 @@ const LEVELS_DATA = {
     availableTools: ['left', 'right', 'send_clone', 'move'],
     initialCode: [],
     hint: "Tourne-toi vers le haut et envoie un Clone activer l'interrupteur.",
-    pedagogy: { concept: "Multi-Tâches", explanation: "Exécution parallèle.", realWorld: "Serveurs & Threads." }
+    
+        pedagogy: {
+          concept: "Multi-Tâches",
+          explanation: "Bravo ! Tu as fait agir plusieurs robots en même temps. C'est comme une équipe qui travaille ensemble pour réussir plus vite.",
+          devWorld: "Les ordinateurs peuvent exécuter plusieurs tâches en parallèle, comme les serveurs sur Internet.",
+          takeaway: "À retenir : Plusieurs actions peuvent se dérouler en même temps grâce à la programmation."
+        }
   },
   12: {
+    levelNumber: 12,
     gridSize: 8,
     start: { x: 0, y: 7, dir: 1 },
     goal: { x: 7, y: 0 },
@@ -190,7 +268,13 @@ const LEVELS_DATA = {
     availableTools: ['move', 'left', 'right', 'dash', 'auto_path', 'collect', 'func_stairs'],
     initialCode: [],
     hint: "Cherche le téléporteur caché en haut à gauche (0,0) !",
-    pedagogy: { concept: "Architecte Logiciel", explanation: "Synthèse de tous les acquis.", realWorld: "Développement d'application complète." }
+    
+        pedagogy: {
+          concept: "Architecte Logiciel",
+          explanation: "Félicitations ! Tu as combiné tout ce que tu as appris pour résoudre un défi complexe. C'est comme construire une maison avec toutes les briques que tu connais.",
+          devWorld: "Les développeurs utilisent toutes leurs compétences pour créer des applications complètes.",
+          takeaway: "À retenir : La programmation, c'est assembler plein d'idées pour créer de grandes choses."
+        }
   }
 };
 
@@ -689,7 +773,13 @@ export default function CodeQuestApp() {
         </header>
         <div className="z-10 max-w-6xl w-full mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {MODULES.map((mod) => (
-            <div key={mod.id} onClick={() => unlockedModules.includes(mod.id) && (setActiveModule(mod.id), setView('level'))}
+            <div key={mod.id} onClick={() => {
+              if (unlockedModules.includes(mod.id)) {
+                setProgram([]);
+                setActiveModule(mod.id);
+                setView('level');
+              }
+            }}
               className={`group cursor-pointer relative overflow-hidden transition-all duration-300 rounded-3xl shadow-xl border-4 border-white/40 bg-gradient-to-br ${mod.color} ${unlockedModules.includes(mod.id) ? 'hover:scale-105 hover:shadow-2xl' : 'opacity-50 grayscale hover:opacity-60'} p-7 flex flex-col items-start min-h-[200px]`}
               style={{ filter: unlockedModules.includes(mod.id) ? 'none' : 'grayscale(0.7)' }}
             >
@@ -720,7 +810,14 @@ export default function CodeQuestApp() {
   }
 
   if (view === 'level') {
-    const activeModuleInfo = activeModule === 99 ? { title: "Niveau Personnalisé", desc: "Création joueur" } : MODULES.find(m => m.id === activeModule);
+    const activeModuleInfo = activeModule === 99 ? { id: 99, title: "Niveau Personnalisé", desc: "Création joueur" } : MODULES.find(m => m.id === activeModule);
+    const goToNextLevel = () => {
+      if (typeof activeModuleInfo.id === 'number' && activeModuleInfo.id < 12) {
+        setProgram([]);
+        setView('level');
+        setActiveModule(activeModuleInfo.id + 1);
+      }
+    };
     return (
       <LevelView
         activeModuleInfo={activeModuleInfo}
@@ -731,6 +828,7 @@ export default function CodeQuestApp() {
         setGameStatus={setGameStatus}
         stars={stars}
         setView={setView}
+        goToNextLevel={goToNextLevel}
         robotState={robotState}
         addBlock={addBlock}
         removeBlock={removeBlock}

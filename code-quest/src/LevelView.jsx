@@ -173,63 +173,83 @@ export default function LevelView({
               `}</style>
         </div>
 
-        <div className="w-full md:w-80 bg-slate-800/50 border-l border-indigo-700/20 flex flex-col shadow-2xl z-10 backdrop-blur">
-          <div className="p-4 border-b border-indigo-700/20 bg-slate-800/70">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Outils Disponibles</h3>
+        <aside className="w-full md:w-80 bg-gradient-to-br from-indigo-100 via-blue-100 to-emerald-100 border-l-4 border-indigo-300 flex flex-col shadow-2xl z-10 backdrop-blur rounded-l-3xl">
+          <div className="p-5 border-b-2 border-indigo-200 bg-white/80 rounded-tl-3xl">
+            <h2 className="text-lg font-extrabold text-indigo-700 mb-1 flex items-center gap-2">🧩 Construis ton programme !</h2>
+            <p className="text-sm text-indigo-500 font-semibold mb-2">Ajoute les blocs pour guider le robot jusqu'à l'étoile ⭐</p>
+            <div className="flex flex-col gap-1 text-xs text-blue-700 font-bold bg-blue-100/60 rounded p-2 mb-2">
+              <span>1️⃣ Clique sur un bloc pour l'ajouter</span>
+              <span>2️⃣ Clique sur la croix pour supprimer</span>
+              <span>3️⃣ Appuie sur <span className="inline-block bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded font-bold">Tester mon programme</span></span>
+            </div>
+          </div>
+
+          <div className="p-4 border-b-2 border-indigo-200 bg-white/70">
+            <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-2">Outils disponibles</h3>
             <div className="grid grid-cols-2 gap-2">
               {currentLevelData.availableTools.map(tool => (
-                 <button key={tool} onClick={() => addBlock(tool)} disabled={isRunning}
-                  className={`p-2 rounded text-xs font-bold flex items-center justify-center gap-1 transition-all duration-150 disabled:opacity-50 ${
-                    tool === 'dash' || tool.startsWith('func') || tool === 'send_clone' ? 'btn-secondary bg-orange-900 border-orange-700' 
-                    : tool === 'if_wall_right' ? 'btn-secondary bg-purple-900 border-purple-700'
-                    : tool === 'auto_path' ? 'btn-secondary bg-cyan-900 border-cyan-700'
-                    : tool === 'collect' ? 'btn-secondary bg-emerald-900 border-emerald-700'
-                    : tool === 'interact' ? 'btn-secondary bg-teal-900 border-teal-700'
-                    : 'btn-secondary bg-indigo-900/30 border-indigo-700'
-                  }`}>
-                  {renderBlockIcon(tool)}
-                 </button>
+                <button key={tool} onClick={() => addBlock(tool)} disabled={isRunning}
+                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl font-bold shadow-md border-2 transition-all duration-150 disabled:opacity-50
+                    ${tool === 'dash' || tool.startsWith('func') || tool === 'send_clone' ? 'bg-orange-100 border-orange-300 text-orange-700' 
+                    : tool === 'if_wall_right' ? 'bg-purple-100 border-purple-300 text-purple-700'
+                    : tool === 'auto_path' ? 'bg-cyan-100 border-cyan-300 text-cyan-700'
+                    : tool === 'collect' ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
+                    : tool === 'interact' ? 'bg-teal-100 border-teal-300 text-teal-700'
+                    : 'bg-indigo-100 border-indigo-300 text-indigo-700'}
+                  `}
+                  title={renderBlockLabel(tool)}
+                >
+                  <span className="text-2xl">{renderBlockIcon(tool)}</span>
+                  <span className="text-xs font-bold leading-tight">{renderBlockLabel(tool)}</span>
+                </button>
               ))}
             </div>
           </div>
 
-          <div className="flex-1 p-3 overflow-y-auto bg-slate-900/50 space-y-2">
-             <div className="flex justify-between items-center mb-2">
-               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Programme</h3>
-               <div className="flex gap-2 text-xs">
-                 <button onClick={() => setShowCode(!showCode)} className="text-indigo-400 hover:text-indigo-300 transition-colors">
-                   {showCode ? 'Blocs' : 'Code'}
-                 </button>
-                 <button onClick={() => setProgram([])} className="text-rose-400 hover:text-rose-300 transition-colors">Effacer</button>
-               </div>
-             </div>
-             <div className="space-y-1 min-h-40 border-2 border-dashed border-indigo-700/20 rounded p-2 bg-slate-900/30">
-               {program.length === 0 && <div className="text-center text-gray-600 italic text-xs pt-12">Zone vide</div>}
-               {showCode ? (
-                 <pre className="text-xs font-mono text-emerald-400 whitespace-pre-wrap leading-snug">
-                   {/* La génération du code réel doit être passée en prop si besoin */}
-                 </pre>
-               ) : (
-                 program.map((block, index) => (
-                   <div key={block.id} className={`p-2 rounded text-xs flex justify-between items-center border-l-4 animate-fade-in ${getBlockColor(block.type)} bg-opacity-20`}>
-                     <span className="flex items-center gap-1 font-semibold">
-                       <span className="text-gray-500 font-mono text-xs">{index + 1}.</span>
-                       {renderBlockIcon(block.type)}
-                       {renderBlockLabel(block.type)}
-                     </span>
-                     <button onClick={() => removeBlock(index)} disabled={isRunning} className="text-gray-400 hover:text-rose-400 transition-colors">
-                       <XCircle size={14} />
-                     </button>
-                   </div>
-                 ))
-               )}
-             </div>
+          <div className="flex-1 p-4 overflow-y-auto bg-white/60">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-wider">Mon programme</h3>
+              <div className="flex gap-2 text-xs">
+                <button onClick={() => setShowCode(!showCode)} className="text-emerald-600 hover:text-emerald-400 font-bold transition-colors underline">
+                  {showCode ? 'Voir les blocs' : 'Voir le code'}
+                </button>
+                <button onClick={() => setProgram([])} className="text-rose-600 hover:text-rose-400 font-bold transition-colors underline">Tout effacer</button>
+              </div>
+            </div>
+            <div className="space-y-2 min-h-40 border-2 border-dashed border-indigo-300 rounded-xl p-3 bg-indigo-50/60">
+              {program.length === 0 && <div className="text-center text-indigo-300 italic text-xs pt-10">Ajoute des blocs à ton programme !</div>}
+              {showCode ? (
+                <pre className="text-xs font-mono text-emerald-700 whitespace-pre-wrap leading-snug bg-emerald-100/60 rounded p-2">
+                  {/* La génération du code réel doit être passée en prop si besoin */}
+                </pre>
+              ) : (
+                program.map((block, index) => (
+                  <div key={block.id} className={`flex items-center justify-between gap-2 p-2 rounded-xl border-2 bg-white/80 shadow-sm animate-fade-in ${getBlockColor(block.type)}`}
+                    style={{ borderLeftWidth: '8px' }}
+                  >
+                    <span className="flex items-center gap-2 font-semibold">
+                      <span className="text-indigo-400 font-mono text-xs">{index + 1}.</span>
+                      <span className="text-xl">{renderBlockIcon(block.type)}</span>
+                      <span className="text-xs font-bold text-indigo-700">{renderBlockLabel(block.type)}</span>
+                    </span>
+                    <button onClick={() => removeBlock(index)} disabled={isRunning} className="text-rose-500 hover:text-rose-700 transition-colors bg-rose-100 rounded-full p-1 ml-2 shadow">
+                      <XCircle size={18} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-          <div className="p-3 bg-dark-800 border-t border-brand-700 border-opacity-20 grid grid-cols-2 gap-2">
-            <button onClick={resetSimulation} disabled={isRunning} className="btn-secondary text-xs">Reset</button>
-            <button onClick={runProgram} disabled={isRunning || program.length === 0} className="btn-success text-xs">{isRunning ? '...' : 'Go'}</button>
+
+          <div className="p-4 bg-gradient-to-r from-emerald-200 via-blue-200 to-indigo-200 border-t-2 border-indigo-200 grid grid-cols-1 gap-3 rounded-bl-3xl">
+            <button onClick={resetSimulation} disabled={isRunning} className="w-full py-3 rounded-xl font-bold text-lg bg-white text-indigo-700 border-2 border-indigo-300 shadow hover:bg-indigo-50 transition-all">
+              🔄 Recommencer
+            </button>
+            <button onClick={runProgram} disabled={isRunning || program.length === 0} className="w-full py-3 rounded-xl font-bold text-lg bg-emerald-400 text-white border-2 border-emerald-500 shadow hover:bg-emerald-500 transition-all animate-pop-in">
+              🚀 Tester mon programme
+            </button>
           </div>
-        </div>
+        </aside>
       </main>
     </div>
   );

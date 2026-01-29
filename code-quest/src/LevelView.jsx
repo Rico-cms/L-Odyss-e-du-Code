@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ChevronRight, CheckCircle, Star, Lock, Gem, Radio, DoorClosed, DoorOpen, RefreshCw, XCircle, Info } from "lucide-react";
 
 export default function LevelView({
@@ -7,6 +7,7 @@ export default function LevelView({
   levelState,
   program,
   gameStatus,
+  setGameStatus,
   stars,
   setView,
   robotState,
@@ -21,8 +22,44 @@ export default function LevelView({
   getBlockColor,
   renderBlockIcon,
   renderBlockLabel,
-  setProgram
+  setProgram,
+  generateRealCode
 }) {
+  // État local pour forcer la fermeture du modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const modalRef = useRef();
+
+  useEffect(() => {
+    if (gameStatus === 'success' || gameStatus === 'failure') setModalOpen(true);
+    else setModalOpen(false);
+  }, [gameStatus]);
+
+  // Ferme le modal si on clique en dehors du contenu (hors modalRef)
+  useEffect(() => {
+    if (!modalOpen) return;
+    function handleDocClick(e) {
+      if (!modalRef.current) return;
+      if (!modalRef.current.contains(e.target)) {
+        setModalOpen(false);
+        setGameStatus('idle');
+      }
+    }
+    document.addEventListener('mousedown', handleDocClick);
+    return () => document.removeEventListener('mousedown', handleDocClick);
+  }, [modalOpen, setGameStatus]);
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setGameStatus('idle');
+  };
+
+  const handleRestart = (e) => {
+    e.stopPropagation();
+    resetSimulation();
+    setModalOpen(false);
+    setGameStatus('idle');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white flex flex-col">
       <header className="glass-panel border-b border-indigo-700/20 p-4 flex items-center justify-between sticky top-0 z-20 backdrop-blur-xl">
@@ -47,43 +84,56 @@ export default function LevelView({
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
           {/* Feedback global animé (succès, erreur, info) */}
-          {(gameStatus === 'success' || gameStatus === 'failure' || gameStatus === 'running') && (
-            <div className={`fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 pointer-events-none transition-all duration-500 ${gameStatus === 'success' ? 'bg-emerald-900/80' : gameStatus === 'failure' ? 'bg-rose-900/80' : 'bg-indigo-900/60'}`}>
-              <div className={`relative max-w-lg w-full text-center rounded-3xl shadow-2xl border-4 transition-all duration-500
-                ${gameStatus === 'success' ? 'border-emerald-400 bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-700 animate-pop-in' :
-                  gameStatus === 'failure' ? 'border-rose-400 bg-gradient-to-br from-rose-900 via-rose-800 to-rose-700 animate-shake' :
-                  'border-indigo-400 bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-700 animate-fade-in'}
-              `} style={{ pointerEvents: 'auto' }}>
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-                <div className="flex flex-col items-center gap-4 py-8">
-                  <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-2
+
+
+          {/* Résumé succès/échec, non bloquant, dismissible */}
+          {modalOpen && (
+            <div className="fixed inset-0 flex items-center justify-center z-40" onClick={handleCloseModal}>
+              <div
+                id="modal-summary"
+                ref={modalRef}
+                className={`relative w-full max-w-2xl mx-auto text-center rounded-3xl shadow-2xl border-4 transition-all duration-500 p-8 md:p-12 flex flex-col items-center
+                  ${gameStatus === 'success' ? 'border-emerald-400 bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-700 animate-pop-in' :
+                    'border-rose-400 bg-gradient-to-br from-rose-900 via-rose-800 to-rose-700 animate-shake'}
+                `}
+                style={{ pointerEvents: 'auto', minHeight: '340px' }}
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  className="absolute top-4 right-6 text-white/80 hover:text-white text-3xl font-bold px-3 py-1 bg-black/20 rounded-full transition-all"
+                  onClick={handleCloseModal}
+                  aria-label="Fermer la fenêtre"
+                >
+                  ×
+                </button>
+                <div className="flex flex-col items-center gap-6 w-full">
+                  <div className={`w-28 h-28 rounded-full flex items-center justify-center mb-2
                     ${gameStatus === 'success' ? 'bg-emerald-800/60 animate-bounce-in' :
-                      gameStatus === 'failure' ? 'bg-rose-800/60 animate-shake' :
-                      'bg-indigo-800/60 animate-spin-slow'}`}
+                      'bg-rose-800/60 animate-shake'}`}
                   >
-                    {gameStatus === 'success' && <CheckCircle className="w-12 h-12 text-emerald-400 animate-pulse" />}
-                    {gameStatus === 'failure' && <XCircle className="w-12 h-12 text-rose-400 animate-pulse" />}
-                    {gameStatus === 'running' && <RefreshCw className="w-12 h-12 text-indigo-400 animate-spin" />}
+                    {gameStatus === 'success' && <CheckCircle className="w-16 h-16 text-emerald-400 animate-pulse" />}
+                    {gameStatus === 'failure' && <XCircle className="w-16 h-16 text-rose-400 animate-pulse" />}
                   </div>
                   {gameStatus === 'success' && (
-                    <div className="flex gap-2 justify-center mb-2">
+                    <div className="flex gap-3 justify-center mb-2">
                       {[1, 2, 3].map(s => (
-                        <Star key={s} size={40} className={`transition-all duration-500 ${s <= stars ? 'text-amber-400 fill-amber-400 scale-125' : 'text-gray-600'}`} />
+                        <Star key={s} size={56} className={`transition-all duration-500 ${s <= stars ? 'text-amber-400 fill-amber-400 scale-125' : 'text-gray-600'}`} />
                       ))}
                     </div>
                   )}
-                  <h2 className={`text-3xl font-bold mb-2 ${gameStatus === 'success' ? 'text-emerald-200' : gameStatus === 'failure' ? 'text-rose-200' : 'text-indigo-200'}`}>
-                    {gameStatus === 'success' ? 'Niveau Complété !' : gameStatus === 'failure' ? 'Échec...' : 'Simulation en cours...'}
+                  <h2 className={`text-4xl md:text-5xl font-extrabold mb-2 ${gameStatus === 'success' ? 'text-emerald-100 drop-shadow' : 'text-rose-100 drop-shadow'}`}>
+                    {gameStatus === 'success' ? 'Niveau Complété !' : 'Échec...'}
                   </h2>
-                  <p className="text-gray-300 text-base mb-4 min-h-6">{feedbackMsg || (gameStatus === 'success' ? 'Bravo !' : gameStatus === 'failure' ? 'Essaie encore !' : '...')}</p>
+                  <p className="text-gray-200 text-lg md:text-xl mb-4 min-h-6 font-semibold">{feedbackMsg || (gameStatus === 'success' ? 'Bravo !' : 'Essaie encore !')}</p>
                   {gameStatus === 'success' && currentLevelData.par && (
-                    <p className="text-gray-400 text-sm mb-4">Blocs utilisés: <span className="text-emerald-300 font-bold">{program.length}</span> (Objectif: {currentLevelData.par})</p>
+                    <p className="text-gray-300 text-base mb-4">Blocs utilisés: <span className="text-emerald-200 font-bold">{program.length}</span> (Objectif: {currentLevelData.par})</p>
                   )}
-                  {gameStatus === 'success' && (
-                    <button onClick={() => setView('map')} className="btn-success w-full !py-3 mt-2">
-                      Continuer l'aventure <ChevronRight size={20} />
-                    </button>
-                  )}
+                  <button
+                    onClick={handleRestart}
+                    className="mt-2 btn-primary text-lg px-8 py-3 rounded-2xl shadow-lg"
+                  >
+                    Recommencer
+                  </button>
                 </div>
               </div>
             </div>
@@ -220,7 +270,7 @@ export default function LevelView({
               {program.length === 0 && <div className="text-center text-indigo-300 italic text-xs pt-10">Ajoute des blocs à ton programme !</div>}
               {showCode ? (
                 <pre className="text-xs font-mono text-emerald-700 whitespace-pre-wrap leading-snug bg-emerald-100/60 rounded p-2">
-                  {/* La génération du code réel doit être passée en prop si besoin */}
+                  {generateRealCode ? generateRealCode() : '// Code non disponible'}
                 </pre>
               ) : (
                 program.map((block, index) => (

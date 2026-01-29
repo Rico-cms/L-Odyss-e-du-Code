@@ -211,6 +211,182 @@ const Button = ({ children, onClick, variant = 'primary', className = '', disabl
 
 export default function CodeQuestApp() {
   const [view, setView] = useState('menu');
+    // --- Helpers pour l'exécution du robot ---
+    const checkCollision = (x, y, currentState) => {
+      if (x < 0 || x >= currentLevelData.gridSize || y < 0 || y >= currentLevelData.gridSize) return 'WALL';
+      if (currentLevelData.obstacles?.some(obs => obs.x === x && obs.y === y)) return 'OBSTACLE';
+      if (currentLevelData.gate && currentLevelData.gate.x === x && currentLevelData.gate.y === y) {
+        if (currentState.itemsCollected < currentLevelData.gate.req) return 'GATE_LOCKED';
+      }
+      if (currentLevelData.doors) {
+        const door = currentLevelData.doors.find(d => d.x === x && d.y === y);
+        if (door && !currentState.doorsOpen.includes(door.id)) return 'DOOR_CLOSED';
+      }
+      return null;
+    };
+
+    const getNextPos = (robot) => {
+      let newX = robot.x;
+      let newY = robot.y;
+      if (robot.dir === 0) newY -= 1;
+      if (robot.dir === 1) newX += 1;
+      if (robot.dir === 2) newY += 1;
+      if (robot.dir === 3) newX -= 1;
+      return { x: newX, y: newY };
+    };
+
+    const handleTileInteraction = async (entity, currentState) => {
+      let newState = { ...currentState };
+      let actionHappened = false;
+      const item = currentLevelData.items?.find(it => it.x === entity.x && it.y === entity.y && !newState.collectedItemsIds.includes(`${it.x}-${it.y}`));
+      if (item) {
+        newState.itemsCollected += 1;
+        newState.collectedItemsIds.push(`${item.x}-${item.y}`);
+        actionHappened = true;
+      }
+      const switchItem = currentLevelData.switches?.find(s => s.x === entity.x && s.y === entity.y);
+      if (switchItem && !newState.doorsOpen.includes(switchItem.linkId)) {
+        newState.doorsOpen.push(switchItem.linkId);
+        actionHappened = true;
+      }
+      return { newState, actionHappened };
+    };
+
+    // Fonction principale d'exécution du programme du robot
+    const runProgram = async () => {
+      if (program.length === 0) {
+        setFeedbackMsg("Le programme est vide !");
+        return;
+      }
+      setIsRunning(true);
+      setGameStatus('running');
+      setFeedbackMsg("Exécution...");
+      let currentRobot = { ...currentLevelData.start };
+      let currentLevelState = { itemsCollected: 0, collectedItemsIds: [], doorsOpen: [], clones: [] };
+      setRobotState(currentRobot);
+      setLevelState(currentLevelState);
+      await new Promise(r => setTimeout(r, 500));
+      for (let i = 0; i < program.length; i++) {
+        const command = program[i];
+        let stepsToExecute = [command];
+        if (command.type === 'dash') {
+          stepsToExecute = [];
+          let limit = 0;
+          let probeRobot = { ...currentRobot };
+          while (limit < currentLevelData.gridSize) {
+            const next = getNextPos(probeRobot);
+            if (checkCollision(next.x, next.y, currentLevelState)) break;
+            probeRobot = { ...probeRobot, ...next };
+            stepsToExecute.push({ type: 'internal_move' });
+            limit++;
+          }
+        } else if (command.type === 'if_wall_right') {
+          stepsToExecute = [];
+          const next = getNextPos(currentRobot);
+          if (checkCollision(next.x, next.y, currentLevelState)) {
+            stepsToExecute.push({ type: 'right' });
+          } else {
+            stepsToExecute.push({ type: 'internal_move' });
+          }
+        } else if (command.type === 'auto_path') {
+          stepsToExecute = [];
+          let limit = 0;
+          let probeRobot = { ...currentRobot };
+          while (limit < currentLevelData.gridSize) {
+            const next = getNextPos(probeRobot);
+            if (checkCollision(next.x, next.y, currentLevelState)) break;
+            probeRobot = { ...probeRobot, ...next };
+            stepsToExecute.push({ type: 'internal_move' });
+            limit++;
+          }
+          const rightDir = (probeRobot.dir + 1) % 4;
+          const nextRight = getNextPos({ ...probeRobot, dir: rightDir });
+          const leftDir = (probeRobot.dir + 3) % 4;
+          const nextLeft = getNextPos({ ...probeRobot, dir: leftDir });
+          if (!checkCollision(nextRight.x, nextRight.y, currentLevelState)) {
+            stepsToExecute.push({ type: 'right' });
+          } else if (!checkCollision(nextLeft.x, nextLeft.y, currentLevelState)) {
+            stepsToExecute.push({ type: 'left' });
+          }
+        } else if (command.type === 'func_stairs') {
+          stepsToExecute = [{ type: 'internal_move' }, { type: 'right' }, { type: 'internal_move' }, { type: 'left' }];
+        } else if (command.type === 'send_clone') {
+          stepsToExecute = [];
+          const cloneStart = { ...currentRobot, isClone: true };
+          let cloneProbe = { ...cloneStart };
+          let cloneSteps = [];
+          let limit = 0;
+          while (limit < currentLevelData.gridSize) {
+            const next = getNextPos(cloneProbe);
+            if (checkCollision(next.x, next.y, currentLevelState)) break;
+            cloneProbe = { ...cloneProbe, ...next };
+            cloneSteps.push({ ...cloneProbe });
+            limit++;
+          }
+          if (cloneSteps.length === 0) {
+            setFeedbackMsg("Le clone est bloqué par un obstacle !");
+            await new Promise(r => setTimeout(r, 500));
+          }
+          for (const stepPos of cloneSteps) {
+            currentLevelState.clones = [stepPos];
+            setLevelState({ ...currentLevelState });
+            const res = await handleTileInteraction(stepPos, currentLevelState);
+            currentLevelState = res.newState;
+            if (res.actionHappened) setLevelState({ ...currentLevelState });
+            await new Promise(r => setTimeout(r, 200));
+          }
+          currentLevelState.clones = [];
+          setLevelState({ ...currentLevelState });
+        }
+        for (let step of stepsToExecute) {
+          if (step.type === 'collect' || step.type === 'interact') {
+            const res = await handleTileInteraction(currentRobot, currentLevelState);
+            currentLevelState = res.newState;
+            setLevelState({ ...currentLevelState });
+            if (res.actionHappened) await new Promise(r => setTimeout(r, 200));
+          } else if (step.type === 'move' || step.type === 'internal_move') {
+            const next = getNextPos(currentRobot);
+            const collision = checkCollision(next.x, next.y, currentLevelState);
+            if (collision) {
+              setGameStatus('failure');
+              if (collision === 'GATE_LOCKED') setFeedbackMsg("Porte fermée ! Il manque des cristaux.");
+              else if (collision === 'DOOR_CLOSED') setFeedbackMsg("Passage bloqué ! Active l'interrupteur.");
+              else setFeedbackMsg("BOUM ! Obstacle détecté.");
+              setIsRunning(false);
+              return;
+            }
+            currentRobot = { ...currentRobot, ...next };
+            const teleporter = currentLevelData.teleporters?.find(tp => tp.x === currentRobot.x && tp.y === currentRobot.y);
+            if (teleporter) {
+              await new Promise(r => setTimeout(r, 200));
+              currentRobot = { ...currentRobot, x: teleporter.targetX, y: teleporter.targetY };
+            }
+          } else if (step.type === 'left') {
+            currentRobot = { ...currentRobot, dir: (currentRobot.dir + 3) % 4 };
+          } else if (step.type === 'right') {
+            currentRobot = { ...currentRobot, dir: (currentRobot.dir + 1) % 4 };
+          }
+          setRobotState(currentRobot);
+          await new Promise(r => setTimeout(r, step.type === 'internal_move' ? 150 : 500));
+        }
+      }
+      if (currentRobot.x === currentLevelData.goal.x && currentRobot.y === currentLevelData.goal.y) {
+        setGameStatus('success');
+        const par = currentLevelData.par || program.length + 2;
+        let earnedStars = 1;
+        if (program.length <= par) earnedStars = 3;
+        else if (program.length <= par + 2) earnedStars = 2;
+        setStars(earnedStars);
+        setFeedbackMsg(`OBJECTIF ATTEINT ! (${earnedStars} étoiles)`);
+        if (!unlockedModules.includes(activeModule + 1) && activeModule !== 99) {
+          setUnlockedModules([...unlockedModules, activeModule + 1]);
+        }
+      } else {
+        setGameStatus('failure');
+        setFeedbackMsg("Programme terminé. Objectif non atteint.");
+      }
+      setIsRunning(false);
+    };
   const [unlockedModules, setUnlockedModules] = useState([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   const [activeModule, setActiveModule] = useState(1);
   
@@ -552,6 +728,7 @@ export default function CodeQuestApp() {
         levelState={levelState}
         program={program}
         gameStatus={gameStatus}
+        setGameStatus={setGameStatus}
         stars={stars}
         setView={setView}
         robotState={robotState}
@@ -561,12 +738,13 @@ export default function CodeQuestApp() {
         showCode={showCode}
         setShowCode={setShowCode}
         resetSimulation={resetSimulation}
-        runProgram={() => {}} // TODO: implémenter la logique d'exécution du programme
+        runProgram={runProgram}
         feedbackMsg={feedbackMsg}
         getBlockColor={getBlockColor}
         renderBlockIcon={renderBlockIcon}
         renderBlockLabel={renderBlockLabel}
         setProgram={setProgram}
+        generateRealCode={generateRealCode}
       />
     );
   }

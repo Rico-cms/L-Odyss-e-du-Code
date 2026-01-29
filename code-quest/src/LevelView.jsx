@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronRight, CheckCircle, Star, Lock, Gem, Radio, DoorClosed, DoorOpen, RefreshCw, XCircle, Info } from "lucide-react";
+import { ChevronRight, CheckCircle, Star, Lock, Gem, Radio, DoorClosed, DoorOpen, RefreshCw, XCircle, Info, Cpu } from "lucide-react";
 
 export default function LevelView({
   activeModuleInfo,
@@ -63,26 +63,27 @@ export default function LevelView({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-white flex flex-col">
-      <header className="glass-panel border-b border-indigo-700/20 p-4 flex items-center justify-between sticky top-0 z-20 backdrop-blur-xl">
-        <div className="flex items-center gap-4">
-          <button onClick={() => setView(activeModuleInfo.id === 99 ? 'editor' : 'map')} className="btn-secondary !py-1 !px-3 text-sm"><ChevronRight className="rotate-180" size={16} /></button>
-          <div>
-            {/* Affichage du nom du niveau */}
-            <div className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-1">
-              Niveau {currentLevelData.levelNumber || activeModuleInfo.id} : {activeModuleInfo.title}
-            </div>
-            <h2 className="text-xl font-bold bg-gradient-brand bg-clip-text text-transparent">{activeModuleInfo.title}</h2>
-            <p className="text-xs text-gray-400">{activeModuleInfo.desc}</p>
+      <header className="w-full bg-gradient-to-r from-indigo-900 via-blue-900 to-emerald-900 shadow-2xl border-b-4 border-emerald-400/40 sticky top-0 z-30 px-0 md:px-0 py-0 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 min-h-[90px]">
+        <div className="flex items-center gap-4 px-4 py-3 md:py-0">
+          <button onClick={() => setView(activeModuleInfo.id === 99 ? 'editor' : 'map')} className="rounded-full bg-white/10 hover:bg-emerald-400/30 border-2 border-emerald-300 text-emerald-200 px-3 py-2 shadow-lg transition-all duration-200 text-lg font-bold flex items-center"><ChevronRight className="rotate-180" size={20} /></button>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-extrabold text-emerald-300 tracking-widest uppercase drop-shadow">Niveau {currentLevelData.levelNumber || activeModuleInfo.id}</span>
+            <span className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-emerald-300 via-blue-200 to-indigo-200 bg-clip-text text-transparent drop-shadow-lg">{activeModuleInfo.title}</span>
+            <span className="text-xs text-emerald-100 italic font-semibold mt-0.5">{activeModuleInfo.desc}</span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4 px-4 py-2 md:py-0">
           {currentLevelData.items && (
-            <div className="glass-panel px-3 py-1 rounded text-sm text-emerald-300 font-bold border border-emerald-600/50">
-              Cristaux: {levelState.itemsCollected}/{currentLevelData.gate?.req || currentLevelData.items.length}
+            <div className="flex items-center gap-2 bg-emerald-900/60 border-2 border-emerald-400/40 rounded-xl px-4 py-2 text-base font-bold text-emerald-200 shadow-md">
+              <Gem className="text-emerald-300 animate-pulse" size={20} />
+              <span>Cristaux</span>
+              <span className="ml-1">{levelState.itemsCollected}/{currentLevelData.gate?.req || currentLevelData.items.length}</span>
             </div>
           )}
-          <div className="glass-panel px-4 py-2 rounded text-sm border border-indigo-600/50 font-bold text-indigo-300">
-            Mémoire: {program.length}/{currentLevelData.maxBlocks}
+          <div className="flex items-center gap-2 bg-indigo-900/60 border-2 border-indigo-400/40 rounded-xl px-4 py-2 text-base font-bold text-indigo-200 shadow-md">
+            <Cpu className="text-indigo-300" size={20} />
+            <span>Mémoire</span>
+            <span className="ml-1">{program.length}/{currentLevelData.maxBlocks}</span>
           </div>
         </div>
       </header>
@@ -189,9 +190,9 @@ export default function LevelView({
             </div>
           )}
 
-        <div className="flex-1 bg-slate-900 p-6 flex flex-col items-center justify-center">
-          <div className="glass-panel p-4 shadow-2xl rounded-2xl border-4 border-indigo-700/30 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900">
-            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${currentLevelData.gridSize}, minmax(0, 1fr))` }}>
+        <div className="flex-1 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-6 flex flex-col items-center justify-center">
+          <div className="w-full max-w-2xl mx-auto p-6 md:p-8 rounded-3xl shadow-2xl border-4 border-emerald-400/20 bg-gradient-to-br from-indigo-900/80 via-blue-900/80 to-emerald-900/80 flex flex-col items-center">
+            <div className="grid gap-2 md:gap-1" style={{ gridTemplateColumns: `repeat(${currentLevelData.gridSize}, minmax(0, 1fr))` }}>
               {Array.from({ length: currentLevelData.gridSize * currentLevelData.gridSize }).map((_, i) => {
                 const x = i % currentLevelData.gridSize;
                 const y = Math.floor(i / currentLevelData.gridSize);
@@ -273,23 +274,23 @@ export default function LevelView({
               `}</style>
         </div>
 
-        <aside className="w-full md:w-80 bg-gradient-to-br from-indigo-100 via-blue-100 to-emerald-100 border-l-4 border-indigo-300 flex flex-col shadow-2xl z-10 backdrop-blur rounded-l-3xl">
-          <div className="p-5 border-b-2 border-indigo-200 bg-white/80 rounded-tl-3xl">
-            <h2 className="text-lg font-extrabold text-indigo-700 mb-1 flex items-center gap-2">🧩 Construis ton programme !</h2>
-            <p className="text-sm text-indigo-500 font-semibold mb-2">Ajoute les blocs pour guider le robot jusqu'à l'étoile ⭐</p>
-            <div className="flex flex-col gap-1 text-xs text-blue-700 font-bold bg-blue-100/60 rounded p-2 mb-2">
+        <aside className="w-full md:w-96 bg-gradient-to-br from-white via-blue-50 to-emerald-50 border-l-4 border-emerald-200 flex flex-col shadow-2xl z-20 backdrop-blur rounded-l-3xl">
+          <div className="p-6 border-b-2 border-emerald-200 bg-white/90 rounded-tl-3xl">
+            <h2 className="text-xl font-extrabold text-emerald-700 mb-2 flex items-center gap-2 drop-shadow">🧩 Construis ton programme !</h2>
+            <p className="text-base text-emerald-600 font-semibold mb-3">Ajoute les blocs pour guider le robot jusqu'à l'étoile <span className='text-amber-400'>⭐</span></p>
+            <div className="flex flex-col gap-1 text-sm text-blue-700 font-bold bg-blue-100/70 rounded p-3 mb-2">
               <span>1️⃣ Clique sur un bloc pour l'ajouter</span>
               <span>2️⃣ Clique sur la croix pour supprimer</span>
               <span>3️⃣ Appuie sur <span className="inline-block bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded font-bold">Tester mon programme</span></span>
             </div>
           </div>
 
-          <div className="p-4 border-b-2 border-indigo-200 bg-white/70">
-            <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-2">Outils disponibles</h3>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="p-5 border-b-2 border-emerald-200 bg-white/80">
+            <h3 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2">Outils disponibles</h3>
+            <div className="grid grid-cols-2 gap-3">
               {currentLevelData.availableTools.map(tool => (
                 <button key={tool} onClick={() => addBlock(tool)} disabled={isRunning}
-                  className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl font-bold shadow-md border-2 transition-all duration-150 disabled:opacity-50
+                  className={`flex flex-col items-center justify-center gap-1 p-3 rounded-2xl font-bold shadow-md border-2 transition-all duration-150 disabled:opacity-50
                     ${tool === 'dash' || tool.startsWith('func') || tool === 'send_clone' ? 'bg-orange-100 border-orange-300 text-orange-700' 
                     : tool === 'if_wall_right' ? 'bg-purple-100 border-purple-300 text-purple-700'
                     : tool === 'auto_path' ? 'bg-cyan-100 border-cyan-300 text-cyan-700'
@@ -299,41 +300,41 @@ export default function LevelView({
                   `}
                   title={renderBlockLabel(tool)}
                 >
-                  <span className="text-2xl">{renderBlockIcon(tool)}</span>
-                  <span className="text-xs font-bold leading-tight">{renderBlockLabel(tool)}</span>
+                  <span className="text-3xl">{renderBlockIcon(tool)}</span>
+                  <span className="text-sm font-bold leading-tight">{renderBlockLabel(tool)}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="flex-1 p-4 overflow-y-auto bg-white/60">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-wider">Mon programme</h3>
+          <div className="flex-1 p-5 overflow-y-auto bg-white/70">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Mon programme</h3>
               <div className="flex gap-2 text-xs">
-                <button onClick={() => setShowCode(!showCode)} className="text-emerald-600 hover:text-emerald-400 font-bold transition-colors underline">
+                <button onClick={() => setShowCode(!showCode)} className="text-emerald-700 hover:text-emerald-400 font-bold transition-colors underline">
                   {showCode ? 'Voir les blocs' : 'Voir le code'}
                 </button>
                 <button onClick={() => setProgram([])} className="text-rose-600 hover:text-rose-400 font-bold transition-colors underline">Tout effacer</button>
               </div>
             </div>
-            <div className="space-y-2 min-h-40 border-2 border-dashed border-indigo-300 rounded-xl p-3 bg-indigo-50/60">
-              {program.length === 0 && <div className="text-center text-indigo-300 italic text-xs pt-10">Ajoute des blocs à ton programme !</div>}
+            <div className="space-y-2 min-h-40 border-2 border-dashed border-emerald-300 rounded-2xl p-4 bg-emerald-50/60">
+              {program.length === 0 && <div className="text-center text-emerald-300 italic text-sm pt-10">Ajoute des blocs à ton programme !</div>}
               {showCode ? (
-                <pre className="text-xs font-mono text-emerald-700 whitespace-pre-wrap leading-snug bg-emerald-100/60 rounded p-2">
+                <pre className="text-sm font-mono text-emerald-700 whitespace-pre-wrap leading-snug bg-emerald-100/60 rounded p-3">
                   {generateRealCode ? generateRealCode() : '// Code non disponible'}
                 </pre>
               ) : (
                 program.map((block, index) => (
-                  <div key={block.id} className={`flex items-center justify-between gap-2 p-2 rounded-xl border-2 bg-white/80 shadow-sm animate-fade-in ${getBlockColor(block.type)}`}
+                  <div key={block.id} className={`flex items-center justify-between gap-2 p-3 rounded-2xl border-2 bg-white/90 shadow-sm animate-fade-in ${getBlockColor(block.type)}`}
                     style={{ borderLeftWidth: '8px' }}
                   >
                     <span className="flex items-center gap-2 font-semibold">
-                      <span className="text-indigo-400 font-mono text-xs">{index + 1}.</span>
-                      <span className="text-xl">{renderBlockIcon(block.type)}</span>
-                      <span className="text-xs font-bold text-indigo-700">{renderBlockLabel(block.type)}</span>
+                      <span className="text-emerald-400 font-mono text-xs">{index + 1}.</span>
+                      <span className="text-2xl">{renderBlockIcon(block.type)}</span>
+                      <span className="text-sm font-bold text-emerald-700">{renderBlockLabel(block.type)}</span>
                     </span>
                     <button onClick={() => removeBlock(index)} disabled={isRunning} className="text-rose-500 hover:text-rose-700 transition-colors bg-rose-100 rounded-full p-1 ml-2 shadow">
-                      <XCircle size={18} />
+                      <XCircle size={20} />
                     </button>
                   </div>
                 ))
@@ -341,11 +342,11 @@ export default function LevelView({
             </div>
           </div>
 
-          <div className="p-4 bg-gradient-to-r from-emerald-200 via-blue-200 to-indigo-200 border-t-2 border-indigo-200 grid grid-cols-1 gap-3 rounded-bl-3xl">
-            <button onClick={resetSimulation} disabled={isRunning} className="w-full py-3 rounded-xl font-bold text-lg bg-white text-indigo-700 border-2 border-indigo-300 shadow hover:bg-indigo-50 transition-all">
+          <div className="p-5 bg-gradient-to-r from-emerald-200 via-blue-200 to-indigo-200 border-t-2 border-emerald-200 grid grid-cols-1 gap-4 rounded-bl-3xl">
+            <button onClick={resetSimulation} disabled={isRunning} className="w-full py-4 rounded-2xl font-bold text-lg bg-white text-emerald-700 border-2 border-emerald-300 shadow hover:bg-emerald-50 transition-all">
               🔄 Recommencer
             </button>
-            <button onClick={runProgram} disabled={isRunning || program.length === 0} className="w-full py-3 rounded-xl font-bold text-lg bg-emerald-400 text-white border-2 border-emerald-500 shadow hover:bg-emerald-500 transition-all animate-pop-in">
+            <button onClick={runProgram} disabled={isRunning || program.length === 0} className="w-full py-4 rounded-2xl font-bold text-lg bg-emerald-400 text-white border-2 border-emerald-500 shadow hover:bg-emerald-500 transition-all animate-pop-in">
               🚀 Tester mon programme
             </button>
           </div>

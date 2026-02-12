@@ -1,0 +1,10 @@
+{
+  "name": "l-odyssee-du-code",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd code-quest && npm install && npm run build",
+    "dev": "cd code-quest && npm run dev",
+    "preview": "cd code-quest && npm run preview"
+  }
+}

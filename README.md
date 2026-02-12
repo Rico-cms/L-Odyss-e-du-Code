@@ -27,7 +27,7 @@ vercel
 ## 📦 Project Structure
 
 ```
-L-Odyss-e-du-Code/
+L-Odyssée-du-Code/
 ├── code-quest/          # Main React + Vite application
 │   ├── src/            # Source files
 │   ├── public/         # Static assets

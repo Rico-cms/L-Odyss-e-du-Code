@@ -1,8 +1,9 @@
 {
   "version": 2,
   "framework": "vite",
-  "buildCommand": "cd code-quest && npm ci && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "code-quest/dist",
+  "installCommand": "npm install --prefix code-quest",
   "rewrites": [
     {
       "source": "/(.*)",

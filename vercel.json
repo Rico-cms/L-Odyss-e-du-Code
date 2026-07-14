@@ -1,8 +1,8 @@
 {
   "version": 2,
   "framework": "vite",
-  "installCommand": "if [ -f package.json ] && [ -f code-quest/package.json ]; then npm install --prefix code-quest; elif [ -f package.json ]; then npm install; else echo 'No package.json found'; exit 1; fi",
-  "buildCommand": "if [ -f package.json ] && [ -f code-quest/package.json ]; then npm --prefix code-quest run build; elif [ -f package.json ]; then npm run build; else echo 'No package.json found'; exit 1; fi",
+  "installCommand": "npm install --prefix code-quest",
+  "buildCommand": "npm --prefix code-quest run build",
   "outputDirectory": "code-quest/dist",
   "rewrites": [
     {

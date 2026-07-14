@@ -17,6 +17,8 @@ export default function LevelView({
   isRunning,
   showCode,
   setShowCode,
+  showExplanation,
+  setShowExplanation,
   resetSimulation,
   runProgram,
   feedbackMsg,
@@ -24,7 +26,10 @@ export default function LevelView({
   renderBlockIcon,
   renderBlockLabel,
   setProgram,
-  generateRealCode
+  generateRealCode,
+  debugMode,
+  setDebugMode,
+  debugSnapshot,
 }) {
   // État local pour forcer la fermeture du modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -89,6 +94,15 @@ export default function LevelView({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setDebugMode(!debugMode)}
+            className={`rounded-2xl border px-3 py-2 text-sm font-bold transition-all ${debugMode ? 'border-sky-300 bg-sky-600 text-white shadow-sm' : 'border-slate-200 bg-white/90 text-slate-700 hover:border-sky-200'}`}
+          >
+            <span className="flex items-center gap-2">
+              <Info size={16} />
+              {debugMode ? 'Débogage actif' : 'Débogage'}
+            </span>
+          </button>
           {currentLevelData.items && (
             <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-base font-bold text-emerald-700 shadow-sm">
               <Gem className="text-emerald-500" size={18} />
@@ -116,7 +130,7 @@ export default function LevelView({
                 ref={modalRef}
                 className={`relative w-full max-w-2xl mx-auto text-center rounded-3xl shadow-2xl border-4 transition-all duration-500 p-8 md:p-12 flex flex-col items-center
                   ${gameStatus === 'success' ? 'border-emerald-400 bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-700 animate-pop-in' :
-                    'border-rose-400 bg-gradient-to-br from-rose-900 via-rose-800 to-rose-700 animate-shake'}
+                    'border-rose-400 bg-gradient-to-br from-rose-900 via-rose-800 to-rose-700'}
                 `}
                 style={{ pointerEvents: 'auto', minHeight: '340px' }}
                 onClick={e => e.stopPropagation()}
@@ -131,7 +145,7 @@ export default function LevelView({
                 <div className="flex flex-col items-center gap-6 w-full">
                   <div className={`w-28 h-28 rounded-full flex items-center justify-center mb-2
                     ${gameStatus === 'success' ? 'bg-emerald-800/60 animate-bounce-in' :
-                      'bg-rose-800/60 animate-shake'}`}
+                      'bg-rose-800/60'}`}
                   >
                     {gameStatus === 'success' && <CheckCircle className="w-16 h-16 text-emerald-400 animate-pulse" />}
                     {gameStatus === 'failure' && <XCircle className="w-16 h-16 text-rose-400 animate-pulse" />}
@@ -208,6 +222,27 @@ export default function LevelView({
 
         <div className="flex flex-1 flex-col items-center justify-center bg-transparent p-4 md:p-6">
           <div className="mx-auto flex w-full max-w-2xl flex-col items-center rounded-[32px] border border-white/70 bg-white/80 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur-xl md:p-6">
+            {debugMode && debugSnapshot && (
+              <div className="mb-4 w-full rounded-2xl border border-sky-200 bg-sky-50/90 p-4 text-sm text-sky-800 shadow-sm">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-extrabold">🧪 Vue de débogage</span>
+                  <span className="rounded-full bg-white px-2 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-sky-700">Étape {debugSnapshot.stepNumber}</span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div><span className="font-semibold">Bloc :</span> {debugSnapshot.commandLabel}</div>
+                  <div><span className="font-semibold">Action :</span> {debugSnapshot.actionLabel}</div>
+                  <div><span className="font-semibold">Position :</span> ({debugSnapshot.robot.x},{debugSnapshot.robot.y})</div>
+                  <div><span className="font-semibold">Direction :</span> {['Nord','Est','Sud','Ouest'][debugSnapshot.robot.dir]}</div>
+                  <div><span className="font-semibold">Cristaux :</span> {debugSnapshot.itemsCollected}</div>
+                  <div><span className="font-semibold">Portes :</span> {debugSnapshot.doorsOpen.length > 0 ? debugSnapshot.doorsOpen.join(', ') : 'Aucune'}</div>
+                  {debugSnapshot.surprise && (
+                    <div className="sm:col-span-2 rounded-xl border border-amber-200 bg-amber-100/80 p-2 font-semibold text-amber-800">
+                      ⚠️ Piège actif : {debugSnapshot.surprise.message || 'Le robot a été téléporté.'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="mb-4 flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
               <span className="font-semibold">🧭 Zone de jeu</span>
               <span className="rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{currentLevelData.gridSize}×{currentLevelData.gridSize}</span>
@@ -228,12 +263,15 @@ export default function LevelView({
                 const door = currentLevelData.doors?.find(d => d.x === x && d.y === y);
                 const isDoorOpen = door && levelState.doorsOpen.includes(door.id);
                 const isClone = levelState.clones?.find(c => c.x === x && c.y === y);
+                const surprise = currentLevelData.surprises?.find(s => s.x === x && s.y === y);
+                const isActiveSurprise = !!(surprise && debugSnapshot?.surprise?.x === x && debugSnapshot?.surprise?.y === y);
 
                 // Style dynamique pour chaque case
                 let cellClass = 'relative flex h-12 w-12 items-center justify-center rounded-2xl border-2 shadow-inner transition-all duration-200 md:h-16 md:w-16';
                 if (isObstacle) cellClass += ' bg-rose-100 border-rose-300';
                 else if (isGoal) cellClass += ' bg-gradient-to-br from-emerald-400 via-emerald-300 to-emerald-200 border-emerald-400 ring-2 ring-emerald-300';
                 else if (isTeleporter) cellClass += ' bg-sky-100 border-sky-300 animate-pulse';
+                else if (surprise) cellClass += isActiveSurprise ? ' bg-amber-100 border-amber-400 ring-2 ring-amber-300' : ' bg-amber-50 border-amber-200';
                 else cellClass += ' bg-slate-100 border-slate-200';
 
                 return (
@@ -246,6 +284,8 @@ export default function LevelView({
                     {isGate && !gateOpen && <Lock className="text-rose-400 animate-pulse" size={22} />}
                     {/* Téléporteur */}
                     {isTeleporter && <Radio className="text-cyan-500 animate-pulse" size={20} />}
+                    {/* Surprise / piège */}
+                    {surprise && <div className={`text-xl ${isActiveSurprise ? 'animate-bounce' : 'animate-pulse-slow'}`}>⚠️</div>}
                     {/* Interrupteur */}
                     {isSwitch && <div className={`h-5 w-5 rounded-full border-2 ${levelState.doorsOpen.includes(isSwitch.linkId) ? 'animate-pulse border-emerald-500 bg-emerald-400' : 'animate-pulse-slow border-rose-500 bg-rose-500'}`}></div>}
                     {/* Porte */}
@@ -266,7 +306,7 @@ export default function LevelView({
           {gameStatus !== 'success' && (
             <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 font-semibold border-2 text-base z-30 transition-all duration-500
               ${gameStatus === 'running' ? 'border-indigo-500 bg-indigo-900/80 text-indigo-200 animate-pulse' :
-                gameStatus === 'failure' ? 'border-rose-500 bg-rose-900/80 text-rose-200 animate-shake' :
+                gameStatus === 'failure' ? 'border-rose-500 bg-rose-900/80 text-rose-200' :
                 'border-gray-700 bg-slate-800/90 text-gray-200 animate-fade-in'}
             `}>
               {gameStatus === 'running' ? <RefreshCw className="animate-spin" size={20} /> : gameStatus === 'failure' ? <XCircle size={20} /> : <Info size={20} />}
@@ -279,8 +319,8 @@ export default function LevelView({
                 .animate-pop-in { animation: pop-in 0.7s cubic-bezier(.22,1.12,.62,1.01); }
                 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
                 .animate-shimmer { background-size: 200% 100%; animation: shimmer 2.5s infinite linear; }
-                @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
-                .animate-shake { animation: shake 0.5s; }
+                @keyframes gentle-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+                .animate-shake { animation: gentle-shake 0.35s ease-in-out; }
                 @keyframes bounce-in { 0% { transform: scale(0.5); opacity: 0; } 80% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); } }
                 .animate-bounce-in { animation: bounce-in 0.7s cubic-bezier(.22,1.12,.62,1.01); }
                 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -355,9 +395,12 @@ export default function LevelView({
                 <h3 className="text-[11px] font-extrabold uppercase tracking-[0.28em] text-fuchsia-500">Mon programme</h3>
                 <div className="mt-1 text-[11px] uppercase tracking-[0.2em] text-slate-500">{program.length} blocs / {currentLevelData.maxBlocks}</div>
               </div>
-              <div className="flex gap-2 text-xs">
-                <button onClick={() => setShowCode(!showCode)} className="font-bold text-emerald-700 underline transition-colors hover:text-emerald-500">
+              <div className="flex flex-wrap gap-2 text-xs">
+                <button onClick={() => { setShowExplanation(false); setShowCode(!showCode); }} className="font-bold text-emerald-700 underline transition-colors hover:text-emerald-500">
                   {showCode ? 'Voir les blocs' : 'Voir le code'}
+                </button>
+                <button onClick={() => { setShowCode(false); setShowExplanation(!showExplanation); }} className="font-bold text-sky-700 underline transition-colors hover:text-sky-500">
+                  {showExplanation ? 'Masquer l’explication' : 'Expliquer'}
                 </button>
                 <button onClick={() => setProgram([])} className="font-bold text-rose-600 underline transition-colors hover:text-rose-500">Tout effacer</button>
               </div>
@@ -369,7 +412,20 @@ export default function LevelView({
                   Attention : tu es proche de la limite de blocs.
                 </div>
               )}
-              {showCode ? (
+              {showExplanation ? (
+                <div className="space-y-3 rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-800">
+                  <div className="font-extrabold uppercase tracking-[0.25em] text-sky-700">Explication pédagogique</div>
+                  <p className="leading-relaxed">
+                    {generateRealCode ? generateRealCode() : 'Aucune explication disponible.'}
+                  </p>
+                  <div className="rounded-xl border border-sky-200 bg-white/80 p-3">
+                    <div className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-sky-600">Version algorithmique</div>
+                    <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-slate-700">
+                      {generateRealCode ? generateRealCode() : '// Pas encore de logique à montrer'}
+                    </pre>
+                  </div>
+                </div>
+              ) : showCode ? (
                 <pre className="text-sm font-mono text-emerald-700 whitespace-pre-wrap leading-snug bg-emerald-100/60 rounded p-3">
                   {generateRealCode ? generateRealCode() : '// Code non disponible'}
                 </pre>

@@ -165,7 +165,8 @@ const LEVELS_DATA = {
     par: 4,
     availableTools: ['move', 'left', 'right'],
     initialCode: [],
-    hint: "Marche sur la dalle bleue pour te téléporter.",
+    surprises: [{ x: 4, y: 3, type: 'trap', targetX: 6, targetY: 3, period: 2, phaseOffset: 0 }],
+    hint: "Marche sur la dalle bleue pour te téléporter, mais attention aux pièges temporaires !",
     
         pedagogy: {
           concept: "Coordonnées (X,Y)",
@@ -346,6 +347,30 @@ export default function CodeQuestApp() {
       return { newState, actionHappened };
     };
 
+    const getSurpriseState = (x, y, stepNumber) => {
+      const surprise = currentLevelData.surprises?.find(s => s.x === x && s.y === y);
+      if (!surprise) return null;
+      const period = surprise.period || 2;
+      const phaseOffset = surprise.phaseOffset || 0;
+      const isActive = ((stepNumber + phaseOffset) % period) === 0;
+      return isActive ? surprise : null;
+    };
+
+    const buildDebugSnapshot = (command, actionLabel, currentRobot, currentLevelState, stepNumber) => {
+      const surprise = getSurpriseState(currentRobot.x, currentRobot.y, stepNumber);
+      return {
+        stepNumber,
+        commandLabel: renderBlockLabel(command?.type || 'move'),
+        actionLabel,
+        robot: { ...currentRobot },
+        itemsCollected: currentLevelState.itemsCollected,
+        collectedItemsIds: [...currentLevelState.collectedItemsIds],
+        doorsOpen: [...currentLevelState.doorsOpen],
+        clones: [...(currentLevelState.clones || [])],
+        surprise,
+      };
+    };
+
     // Fonction principale d'exécution du programme du robot
     const runProgram = async () => {
       if (program.length === 0) {
@@ -357,8 +382,10 @@ export default function CodeQuestApp() {
       setFeedbackMsg("Exécution...");
       let currentRobot = { ...currentLevelData.start };
       let currentLevelState = { itemsCollected: 0, collectedItemsIds: [], doorsOpen: [], clones: [] };
+      let simulationStep = 0;
       setRobotState(currentRobot);
       setLevelState(currentLevelState);
+      setDebugSnapshot(buildDebugSnapshot(null, 'Début de la simulation', currentRobot, currentLevelState, simulationStep));
       await new Promise(r => setTimeout(r, 500));
       for (let i = 0; i < program.length; i++) {
         const command = program[i];
@@ -434,10 +461,12 @@ export default function CodeQuestApp() {
           setLevelState({ ...currentLevelState });
         }
         for (let step of stepsToExecute) {
+          let actionLabel = 'Attente';
           if (step.type === 'collect' || step.type === 'interact') {
             const res = await handleTileInteraction(currentRobot, currentLevelState);
             currentLevelState = res.newState;
             setLevelState({ ...currentLevelState });
+            actionLabel = step.type === 'collect' ? 'Ramasse un objet' : 'Active un mécanisme';
             if (res.actionHappened) await new Promise(r => setTimeout(r, 200));
           } else if (step.type === 'move' || step.type === 'internal_move') {
             const next = getNextPos(currentRobot);
@@ -456,12 +485,22 @@ export default function CodeQuestApp() {
               await new Promise(r => setTimeout(r, 200));
               currentRobot = { ...currentRobot, x: teleporter.targetX, y: teleporter.targetY };
             }
+            const surprise = getSurpriseState(currentRobot.x, currentRobot.y, simulationStep + 1);
+            if (surprise?.type === 'trap') {
+              currentRobot = { ...currentRobot, x: surprise.targetX ?? currentRobot.x, y: surprise.targetY ?? currentRobot.y };
+              setFeedbackMsg(surprise.message || 'Piège activé ! Le robot a été téléporté.');
+            }
+            actionLabel = 'Avance';
           } else if (step.type === 'left') {
             currentRobot = { ...currentRobot, dir: (currentRobot.dir + 3) % 4 };
+            actionLabel = 'Tourne à gauche';
           } else if (step.type === 'right') {
             currentRobot = { ...currentRobot, dir: (currentRobot.dir + 1) % 4 };
+            actionLabel = 'Tourne à droite';
           }
+          simulationStep += 1;
           setRobotState(currentRobot);
+          setDebugSnapshot(buildDebugSnapshot(command, actionLabel, currentRobot, currentLevelState, simulationStep));
           await new Promise(r => setTimeout(r, step.type === 'internal_move' ? 150 : 500));
         }
       }
@@ -504,7 +543,10 @@ export default function CodeQuestApp() {
   const [gameStatus, setGameStatus] = useState('idle');
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [stars, setStars] = useState(0); 
-  const [showCode, setShowCode] = useState(false); 
+  const [showCode, setShowCode] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [debugMode, setDebugMode] = useState(true);
+  const [debugSnapshot, setDebugSnapshot] = useState(null);
   const nextBlockIdRef = useRef(1);
 
   const currentLevelData = activeModule === 99 ? customLevel : (LEVELS_DATA[activeModule] || LEVELS_DATA[1]);
@@ -531,6 +573,7 @@ export default function CodeQuestApp() {
     setIsRunning(false);
     setFeedbackMsg(currentLevelData.hint || '');
     setStars(0);
+    setDebugSnapshot(null);
   };
 
   const resetSimulation = () => {
@@ -539,6 +582,7 @@ export default function CodeQuestApp() {
     setGameStatus('idle');
     setIsRunning(false);
     setFeedbackMsg(currentLevelData.hint || '');
+    setDebugSnapshot(null);
   };
 
   // Générateur d'ID stable pour React (évite Date.now/Math.random)
@@ -630,6 +674,21 @@ export default function CodeQuestApp() {
         default: return '// Action inconnue';
       }
     }).join('\n\n');
+  };
+
+  const generateExplanation = () => {
+    if (program.length === 0) {
+      return {
+        summary: 'Ton programme est vide. Ajoute quelques blocs pour donner des instructions au robot.',
+        algorithm: 'function résoudre() {\n  ajouterBloc("Avancer");\n  ajouterBloc("Tourner");\n  ajouterBloc("Avancer");\n}'
+      };
+    }
+
+    const steps = program.map(block => renderBlockLabel(block.type)).join(' → ');
+    const summary = `Ton robot suit cette logique : ${steps}. Chaque bloc donne une instruction précise à exécuter.`;
+    const algorithm = `function résoudre() {\n  ${program.map(block => `executer("${renderBlockLabel(block.type)}");`).join('\n  ')}\n}`;
+
+    return { summary, algorithm };
   };
 
   const renderBlockIcon = (type) => {
@@ -836,6 +895,8 @@ export default function CodeQuestApp() {
         isRunning={isRunning}
         showCode={showCode}
         setShowCode={setShowCode}
+        showExplanation={showExplanation}
+        setShowExplanation={setShowExplanation}
         resetSimulation={resetSimulation}
         runProgram={runProgram}
         feedbackMsg={feedbackMsg}
@@ -844,6 +905,9 @@ export default function CodeQuestApp() {
         renderBlockLabel={renderBlockLabel}
         setProgram={setProgram}
         generateRealCode={generateRealCode}
+        debugMode={debugMode}
+        setDebugMode={setDebugMode}
+        debugSnapshot={debugSnapshot}
       />
     );
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Play, RotateCcw, ChevronRight, Star, Lock, Map, Code, Info, Terminal, RefreshCw, CheckCircle, XCircle, Zap, Cpu, Activity, BookOpen, Gem, DoorClosed, DoorOpen, Fingerprint, Radio, Copy, Layers, Edit, Save, Trash2, Eye, EyeOff, MousePointer } from 'lucide-react';
 import MainMenu from './MainMenu';
 import LevelView from './LevelView';
@@ -45,7 +45,7 @@ const LEVELS_DATA = {
     goal: { x: 3, y: 4 },
     obstacles: [{ x: 2, y: 4 }, { x: 2, y: 3 }],
     maxBlocks: 8,
-    par: 6,
+    par: 8,
     availableTools: ['move', 'left', 'right'],
     initialCode: [{ id: 'bug1', type: 'move' }, { id: 'bug2', type: 'move' }, { id: 'bug3', type: 'right' }, { id: 'bug4', type: 'move' }], 
     hint: "Le mur est moins haut ! Tu peux passer par dessus (y=2).",
@@ -64,7 +64,7 @@ const LEVELS_DATA = {
     goal: { x: 5, y: 5 },
     obstacles: [{ x: 2, y: 0 }, { x: 2, y: 1 }, { x: 2, y: 4 }, { x: 2, y: 5 }, { x: 4, y: 2 }, { x: 4, y: 3 }],
     maxBlocks: 14,
-    par: 12,
+    par: 14,
     availableTools: ['move', 'left', 'right'],
     initialCode: [],
     hint: "Passe par le trou au centre du mur.",
@@ -142,7 +142,7 @@ const LEVELS_DATA = {
     items: [{ x: 2, y: 0, type: 'crystal' }, { x: 0, y: 2, type: 'crystal' }, { x: 5, y: 3, type: 'crystal' }],
     gate: { x: 4, y: 5, req: 3 },
     maxBlocks: 15,
-    par: 12,
+    par: 13,
     availableTools: ['move', 'left', 'right', 'collect'],
     initialCode: [],
     hint: "Ramasse les 3 cristaux pour ouvrir la porte.",
@@ -162,7 +162,7 @@ const LEVELS_DATA = {
     obstacles: [{x:3, y:0}, {x:3, y:1}, {x:3, y:2}, {x:3, y:3}, {x:3, y:4}, {x:3, y:5}, {x:3, y:6}],
     teleporters: [{ x: 2, y: 3, targetX: 4, targetY: 3 }],
     maxBlocks: 6,
-    par: 3,
+    par: 4,
     availableTools: ['move', 'left', 'right'],
     initialCode: [],
     hint: "Marche sur la dalle bleue pour te téléporter.",
@@ -201,9 +201,9 @@ const LEVELS_DATA = {
     start: { x: 0, y: 5, dir: 0 },
     goal: { x: 5, y: 0 },
     obstacles: [
-       {x:0, y:4}, {x:0, y:3}, {x:0, y:2}, {x:0, y:1}, {x:0, y:0},
-       {x:1, y:5}, {x:1, y:3}, {x:1, y:2}, {x:1, y:1}, {x:1, y:0},
-       {x:2, y:5}, {x:2, y:4}, {x:2, y:2}, {x:2, y:1}, {x:2, y:0},
+       {x:0, y:3}, {x:0, y:2}, {x:0, y:1}, {x:0, y:0},
+       {x:1, y:5}, {x:1, y:2}, {x:1, y:1}, {x:1, y:0},
+       {x:2, y:5}, {x:2, y:4}, {x:2, y:1}, {x:2, y:0},
        {x:3, y:5}, {x:3, y:4}, {x:3, y:3}, {x:3, y:0},
        {x:4, y:5}, {x:4, y:4}, {x:4, y:3}, {x:4, y:2},
        {x:5, y:5}, {x:5, y:4}, {x:5, y:3}, {x:5, y:2}, {x:5, y:1},
@@ -319,6 +319,16 @@ export default function CodeQuestApp() {
       return { x: newX, y: newY };
     };
 
+    const getRightPos = (robot) => {
+      const rightDir = (robot.dir + 1) % 4;
+      return getNextPos({ ...robot, dir: rightDir });
+    };
+
+    const getLeftPos = (robot) => {
+      const leftDir = (robot.dir + 3) % 4;
+      return getNextPos({ ...robot, dir: leftDir });
+    };
+
     const handleTileInteraction = async (entity, currentState) => {
       let newState = { ...currentState };
       let actionHappened = false;
@@ -366,11 +376,12 @@ export default function CodeQuestApp() {
           }
         } else if (command.type === 'if_wall_right') {
           stepsToExecute = [];
-          const next = getNextPos(currentRobot);
-          if (checkCollision(next.x, next.y, currentLevelState)) {
-            stepsToExecute.push({ type: 'right' });
-          } else {
+          const rightPos = getRightPos(currentRobot);
+          const rightCollision = checkCollision(rightPos.x, rightPos.y, currentLevelState);
+          if (rightCollision) {
             stepsToExecute.push({ type: 'internal_move' });
+          } else {
+            stepsToExecute.push({ type: 'right' });
           }
         } else if (command.type === 'auto_path') {
           stepsToExecute = [];
@@ -494,6 +505,7 @@ export default function CodeQuestApp() {
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [stars, setStars] = useState(0); 
   const [showCode, setShowCode] = useState(false); 
+  const nextBlockIdRef = useRef(1);
 
   const currentLevelData = activeModule === 99 ? customLevel : (LEVELS_DATA[activeModule] || LEVELS_DATA[1]);
 
@@ -533,8 +545,8 @@ export default function CodeQuestApp() {
   let nextBlockId = 1;
   const addBlock = (type) => {
     if (program.length < currentLevelData.maxBlocks && gameStatus !== 'running') {
-      nextBlockId += 1;
-      setProgram([...program, { id: `block-${nextBlockId}`, type }]);
+      nextBlockIdRef.current += 1;
+      setProgram([...program, { id: `block-${nextBlockIdRef.current}`, type }]);
     }
   };
 
@@ -611,7 +623,7 @@ export default function CodeQuestApp() {
         case 'dash': return `while (robot.voieLibre()) {\n  robot.avancer();\n}`;
         case 'collect': return 'robot.ramasser();';
         case 'interact': return 'robot.actionner();';
-        case 'if_wall_right': return `if (robot.detecteMurDevant()) {\n  robot.tournerDroite();\n} else {\n  robot.avancer();\n}`;
+        case 'if_wall_right': return `if (robot.detecteMurDroite()) {\n  robot.avancer();\n} else {\n  robot.tournerDroite();\n}`;
         case 'func_stairs': return `monter_escalier(); // Macro`;
         case 'send_clone': return `const clone = new RobotClone();\nclone.avancerJusquObstacle();`;
         case 'auto_path': return `robot.navigationAuto();`;
@@ -665,53 +677,41 @@ export default function CodeQuestApp() {
 
   if (view === 'menu') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-200 via-pink-100 to-yellow-100 relative overflow-hidden font-['Fredoka','Comic_Sans_MS',cursive]">
-        {/* Effets Pixar : bulles pastel, shimmer, ombres douces */}
-        <div className="absolute top-0 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-3xl animate-pulse z-0"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl animate-pulse z-0"></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-yellow-100/40 rounded-full blur-2xl animate-bounce -translate-x-1/2 -translate-y-1/2 z-0"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-[radial-gradient(circle_at_top_left,_rgba(244,114,182,0.25),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(96,165,250,0.25),_transparent_35%),linear-gradient(135deg,_#fffaf3_0%,_#f1f8ff_45%,_#f8f2ff_100%)] relative overflow-hidden font-['Fredoka','Comic_Sans_MS',cursive]">
+        <div className="absolute -top-10 -left-10 h-44 w-44 rounded-full bg-pink-200/60 blur-3xl"></div>
+        <div className="absolute bottom-8 right-8 h-56 w-56 rounded-full bg-sky-200/60 blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-100/70 blur-3xl"></div>
 
-        {/* Illustration robot cartoon */}
-        <div className="z-10 flex flex-col items-center max-w-2xl w-full">
-          <div className="flex justify-center mb-8">
-            <div className="w-40 h-40 bg-gradient-to-br from-yellow-200 via-pink-100 to-blue-200 rounded-full shadow-2xl flex items-center justify-center border-8 border-white/60 relative animate-float">
-              <span className="absolute -top-4 left-1/2 -translate-x-1/2 w-12 h-12 bg-white/80 rounded-full shadow-lg animate-bounce"></span>
-              <span className="absolute -bottom-4 right-1/2 translate-x-1/2 w-10 h-10 bg-blue-200/80 rounded-full shadow-md animate-pulse"></span>
-              <span className="text-8xl select-none" style={{filter:'drop-shadow(0 0 16px #fff8)'}}>🤖</span>
+        <div className="relative z-10 flex w-full max-w-5xl flex-col items-center rounded-[36px] border border-white/70 bg-white/70 p-8 shadow-[0_30px_70px_rgba(15,23,42,0.12)] backdrop-blur-xl md:p-12">
+          <div className="mb-6 flex items-center justify-center">
+            <div className="relative flex h-40 w-40 items-center justify-center rounded-full border-8 border-white/70 bg-gradient-to-br from-yellow-200 via-pink-100 to-sky-200 shadow-[0_20px_40px_rgba(15,23,42,0.16)]">
+              <span className="absolute -top-3 left-1/2 h-12 w-12 -translate-x-1/2 rounded-full bg-white/80 shadow-lg"></span>
+              <span className="absolute -bottom-3 right-1/2 h-10 w-10 translate-x-1/2 rounded-full bg-sky-200/80 shadow-md"></span>
+              <span className="text-7xl select-none">🤖</span>
             </div>
           </div>
-          <h1
-            className="text-7xl md:text-8xl font-extrabold mb-3 bg-gradient-to-r from-pink-400 via-yellow-400 to-blue-400 bg-clip-text text-transparent drop-shadow-2xl shimmer-text animate-fade-in"
-            style={{ fontFamily: 'Fredoka, Comic Sans MS, cursive', letterSpacing: '-0.04em' }}
-          >
-            <span className="shimmer-text">Code Quest</span>
-          </h1>
-          <p className="text-2xl md:text-3xl text-blue-700 font-bold mb-2 animate-fade-in drop-shadow-sm">Apprends à coder en t'amusant !</p>
-          <p className="text-pink-500 font-semibold italic mb-10 animate-fade-in drop-shadow-sm">Créé par Emrick DAHISSIHO</p>
 
-          <div className="flex flex-col sm:flex-row justify-center gap-8 pt-6 w-full animate-fade-in">
-            <Button onClick={() => setView('map')} className="btn-primary !text-2xl !py-6 !px-12 w-full sm:w-auto shadow-2xl hover:scale-105 transition-transform bg-gradient-to-r from-yellow-400 via-pink-400 to-blue-400 border-0 text-white font-bold rounded-3xl">
-              <Play size={36} className="mr-2" /> Aventure
-            </Button>
-            <Button onClick={() => setView('editor')} variant="secondary" className="btn-secondary !text-2xl !py-6 !px-12 w-full sm:w-auto shadow-2xl hover:scale-105 transition-transform bg-gradient-to-r from-blue-400 via-pink-400 to-yellow-400 border-0 text-white font-bold rounded-3xl">
-              <Edit size={36} className="mr-2" /> Créer Niveau
-            </Button>
+          <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
+            <span className="playful-pill">✨ Apprendre en jouant</span>
+            <span className="playful-pill">🧠 Mini défis de logique</span>
+            <span className="playful-pill">🌈 Style bébé-coder</span>
+          </div>
+
+          <h1 className="mb-3 text-center text-5xl font-extrabold text-slate-800 md:text-7xl">
+            <span className="childish-title">Code Quest</span>
+          </h1>
+          <p className="mb-2 text-center text-xl font-semibold text-sky-700 md:text-2xl">Apprends à coder en t’amusant !</p>
+          <p className="mb-8 text-center text-lg text-fuchsia-600">Créé par Emrick DAHISSIHO • Version ultra ludique</p>
+
+          <div className="flex w-full flex-col gap-4 sm:flex-row sm:justify-center">
+            <button onClick={() => setView('map')} className="playful-button flex items-center justify-center gap-2 px-8 py-4 text-xl">
+              <Play size={28} /> Aventure
+            </button>
+            <button onClick={() => setView('editor')} className="playful-button-secondary flex items-center justify-center gap-2 px-8 py-4 text-xl">
+              <Edit size={28} /> Créer un niveau
+            </button>
           </div>
         </div>
-        {/* Shimmer effect CSS */}
-        <style>{`
-          .shimmer-text {
-            background: linear-gradient(90deg, #fff 20%, #ffe082 40%, #fff 60%);
-            background-size: 200% 100%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shimmer 2.5s infinite linear;
-          }
-          @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-          }
-        `}</style>
       </div>
     );
   }
@@ -762,49 +762,50 @@ export default function CodeQuestApp() {
 
   if (view === 'map') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-100 via-pink-100 to-yellow-100 relative overflow-hidden font-['Fredoka','Comic_Sans_MS',cursive]">
-        {/* Effets Pixar : bulles pastel, shimmer, ombres douces */}
-        <div className="absolute top-0 left-0 w-72 h-72 bg-pink-200/40 rounded-full blur-3xl animate-pulse z-0"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl animate-pulse z-0"></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-yellow-100/40 rounded-full blur-2xl animate-bounce -translate-x-1/2 -translate-y-1/2 z-0"></div>
-        <header className="z-10 flex justify-between items-center mb-10 max-w-6xl w-full mx-auto">
-          <h2 className="text-5xl font-extrabold flex items-center gap-4 bg-gradient-to-r from-pink-400 via-yellow-400 to-blue-400 bg-clip-text text-transparent drop-shadow-2xl shimmer-text" style={{ fontFamily: 'Fredoka, Comic Sans MS, cursive', letterSpacing: '-0.04em' }}><Map size={48} /> Carte des Systèmes</h2>
-          <Button variant="secondary" onClick={() => setView('menu')} className="btn-secondary !py-3 !px-8 rounded-2xl text-lg shadow-lg">Retour</Button>
-        </header>
-        <div className="z-10 max-w-6xl w-full mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {MODULES.map((mod) => (
-            <div key={mod.id} onClick={() => {
-              if (unlockedModules.includes(mod.id)) {
-                setProgram([]);
-                setActiveModule(mod.id);
-                setView('level');
-              }
-            }}
-              className={`group cursor-pointer relative overflow-hidden transition-all duration-300 rounded-3xl shadow-xl border-4 border-white/40 bg-gradient-to-br ${mod.color} ${unlockedModules.includes(mod.id) ? 'hover:scale-105 hover:shadow-2xl' : 'opacity-50 grayscale hover:opacity-60'} p-7 flex flex-col items-start min-h-[200px]`}
-              style={{ filter: unlockedModules.includes(mod.id) ? 'none' : 'grayscale(0.7)' }}
-            >
-               <div className={`absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full group-hover:scale-150 transition-transform duration-500`}></div>
-               <span className={`inline-block text-xs font-bold uppercase py-1 px-3 rounded-full bg-white/30 text-gray-700 backdrop-blur mb-3 drop-shadow`}>{mod.phase}</span>
-               <h3 className="text-2xl font-extrabold mb-2 text-white drop-shadow-lg">{mod.title}</h3>
-               <p className="text-gray-100 text-base mb-2 drop-shadow-sm">{mod.desc}</p>
-               {!unlockedModules.includes(mod.id) && <Lock className="absolute bottom-4 right-4 text-gray-400" size={28} />}
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(244,114,182,0.18),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(96,165,250,0.2),_transparent_35%),linear-gradient(135deg,_#fffaf3_0%,_#f1f8ff_45%,_#f8f2ff_100%)] p-6 py-10 text-slate-800 relative overflow-hidden font-['Fredoka','Comic_Sans_MS',cursive]">
+        <div className="absolute top-0 left-0 h-48 w-48 rounded-full bg-pink-200/50 blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 h-56 w-56 rounded-full bg-sky-200/60 blur-3xl"></div>
+
+        <div className="relative z-10 mx-auto flex max-w-6xl flex-col">
+          <header className="mb-8 flex flex-col gap-4 rounded-[28px] border border-white/70 bg-white/70 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.1)] backdrop-blur-xl md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/70 bg-amber-100/80 px-3 py-1 text-sm font-semibold text-amber-700">
+                <Map size={16} /> Carte des systèmes
+              </div>
+              <h2 className="text-3xl font-extrabold text-slate-800 md:text-4xl">Choisis un monde de missions</h2>
+              <p className="mt-1 text-sm text-slate-600 md:text-base">Chaque carte te fait découvrir une nouvelle idée de programmation.</p>
             </div>
-          ))}
+            <Button variant="secondary" onClick={() => setView('menu')} className="playful-button-secondary px-5 py-3">Retour</Button>
+          </header>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {MODULES.map((mod) => {
+              const isUnlocked = unlockedModules.includes(mod.id);
+              return (
+                <div
+                  key={mod.id}
+                  onClick={() => {
+                    if (isUnlocked) {
+                      setProgram([]);
+                      setActiveModule(mod.id);
+                      setView('level');
+                    }
+                  }}
+                  className={`group relative flex min-h-[220px] cursor-pointer flex-col items-start overflow-hidden rounded-[28px] border border-white/60 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.12)] transition-all duration-300 ${isUnlocked ? 'hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(15,23,42,0.18)]' : 'opacity-60 grayscale'} bg-gradient-to-br ${mod.color}`}
+                >
+                  <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/15 transition-transform duration-500 group-hover:scale-150"></div>
+                  <span className="playful-pill mb-3 bg-white/30 text-white">{mod.phase}</span>
+                  <h3 className="mb-2 text-2xl font-extrabold text-white drop-shadow">{mod.title}</h3>
+                  <p className="mb-4 text-sm leading-6 text-white/90">{mod.desc}</p>
+                  <div className="mt-auto flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm font-semibold text-white">
+                    {isUnlocked ? '▶ Débloqué' : '🔒 À venir'}
+                  </div>
+                  {!isUnlocked && <Lock className="absolute bottom-4 right-4 text-white/70" size={24} />}
+                </div>
+              );
+            })}
+          </div>
         </div>
-        {/* Shimmer effect CSS */}
-        <style>{`
-          .shimmer-text {
-            background: linear-gradient(90deg, #fff 20%, #ffe082 40%, #fff 60%);
-            background-size: 200% 100%;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shimmer 2.5s infinite linear;
-          }
-          @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-          }
-        `}</style>
       </div>
     );
   }

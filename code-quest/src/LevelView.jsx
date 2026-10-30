@@ -36,6 +36,9 @@ export default function LevelView({
   const modalRef = useRef();
   const modalOpen = gameStatus === 'success' || gameStatus === 'failure';
   const explanation = generateExplanation();
+  const activeTool = currentLevelData.availableTools.includes(hoveredTool)
+    ? hoveredTool
+    : currentLevelData.availableTools[0];
 
   const toolMeta = {
     move: { label: 'Avancer', description: 'Avance d’une case dans la direction actuelle.' },
@@ -60,8 +63,8 @@ export default function LevelView({
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(244,114,182,0.16),_transparent_25%),radial-gradient(circle_at_bottom_right,_rgba(96,165,250,0.15),_transparent_30%),linear-gradient(135deg,_#fffaf3_0%,_#f1f8ff_45%,_#f8f2ff_100%)] text-slate-800 flex flex-col">
-      <header className="sticky top-0 z-30 flex min-h-[96px] flex-col items-center justify-between gap-4 border-b border-white/70 bg-white/70 px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:flex-row md:px-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(244,114,182,0.16),_transparent_25%),radial-gradient(circle_at_bottom_right,_rgba(96,165,250,0.15),_transparent_30%),linear-gradient(135deg,_#fffaf3_0%,_#f1f8ff_45%,_#f8f2ff_100%)] text-slate-800 flex flex-col lg:h-dvh lg:overflow-hidden">
+      <header className="sticky top-0 z-30 flex shrink-0 flex-col items-center justify-between gap-3 border-b border-white/70 bg-white/70 px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:flex-row md:px-6 lg:min-h-[76px]">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setView(activeModuleInfo.id === 99 ? 'editor' : 'map')}
@@ -102,7 +105,7 @@ export default function LevelView({
         </div>
       </header>
 
-      <main className="relative flex flex-1 flex-col overflow-hidden md:flex-row">
+      <main className="relative flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-hidden">
           {/* Feedback global animé (succès, erreur, info) */}
 
 
@@ -212,8 +215,8 @@ export default function LevelView({
             </div>
           )}
 
-        <div className="flex flex-1 flex-col items-center justify-center bg-transparent p-4 md:p-6">
-          <div className="mx-auto flex w-full max-w-2xl flex-col items-center rounded-[32px] border border-white/70 bg-white/80 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur-xl md:p-6">
+        <div className="flex flex-1 flex-col items-center justify-center bg-transparent p-3 sm:p-4 lg:min-h-0 lg:overflow-y-auto lg:p-5">
+          <div className="mx-auto flex w-full max-w-2xl flex-col items-center rounded-[32px] border border-white/70 bg-white/80 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur-xl lg:p-5">
             {debugMode && debugSnapshot && (
               <div className="mb-4 w-full rounded-2xl border border-sky-200 bg-sky-50/90 p-4 text-sm text-sky-800 shadow-sm">
                 <div className="mb-2 flex items-center justify-between">
@@ -239,7 +242,13 @@ export default function LevelView({
               <span className="font-semibold">🧭 Zone de jeu</span>
               <span className="rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{currentLevelData.gridSize}×{currentLevelData.gridSize}</span>
             </div>
-            <div className="grid gap-2 md:gap-1" style={{ gridTemplateColumns: `repeat(${currentLevelData.gridSize}, minmax(0, 1fr))` }}>
+            <div
+              className="grid w-full gap-1.5 sm:gap-2 lg:gap-1.5"
+              style={{
+                gridTemplateColumns: `repeat(${currentLevelData.gridSize}, minmax(0, 1fr))`,
+                maxWidth: `${currentLevelData.gridSize * 68}px`,
+              }}
+            >
               {Array.from({ length: currentLevelData.gridSize * currentLevelData.gridSize }).map((_, i) => {
                 const x = i % currentLevelData.gridSize;
                 const y = Math.floor(i / currentLevelData.gridSize);
@@ -259,7 +268,7 @@ export default function LevelView({
                 const isActiveSurprise = !!(surprise && debugSnapshot?.surprise?.x === x && debugSnapshot?.surprise?.y === y);
 
                 // Style dynamique pour chaque case
-                let cellClass = 'relative flex h-12 w-12 items-center justify-center rounded-2xl border-2 shadow-inner transition-all duration-200 md:h-16 md:w-16';
+                let cellClass = 'relative flex aspect-square min-w-0 w-full items-center justify-center rounded-xl border-2 shadow-inner transition-colors duration-200 sm:rounded-2xl';
                 if (isObstacle) cellClass += ' bg-rose-100 border-rose-300';
                 else if (isGoal) cellClass += ' bg-gradient-to-br from-emerald-400 via-emerald-300 to-emerald-200 border-emerald-400 ring-2 ring-emerald-300';
                 else if (isTeleporter) cellClass += ' bg-sky-100 border-sky-300 animate-pulse';
@@ -326,29 +335,25 @@ export default function LevelView({
               `}</style>
         </div>
 
-        <aside className="z-20 flex w-full flex-col border-t border-white/70 bg-white/80 shadow-[0_-10px_35px_rgba(15,23,42,0.06)] backdrop-blur-xl md:w-96 md:border-l md:border-t-0">
-          <div className="border-b border-slate-200 bg-white/90 p-5">
-            <h2 className="mb-2 flex items-center gap-2 text-xl font-extrabold text-slate-800">🧩 Construis ton programme</h2>
-            <p className="mb-3 text-sm font-semibold text-slate-600">Ajoute les blocs pour guider le robot jusqu’à l’étoile <span className="text-amber-400">⭐</span></p>
-            <div className="mb-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
-                <div className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.25em] text-emerald-600">Par cible</div>
-                <div className="text-2xl font-bold text-emerald-700">{currentLevelData.par ?? '-'}</div>
-                <div className="text-xs text-emerald-600">Objectif optimal</div>
+        <aside className="z-20 flex w-full flex-col border-t border-white/70 bg-white/80 shadow-[0_-10px_35px_rgba(15,23,42,0.06)] backdrop-blur-xl lg:min-h-0 lg:w-[26rem] lg:shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0 xl:w-[30rem]">
+          <div className="shrink-0 border-b border-slate-200 bg-white/90 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="flex items-center gap-2 text-lg font-extrabold text-slate-800">🧩 Construis ton programme</h2>
+                <p className="mt-1 text-xs font-semibold text-slate-600">Guide le robot jusqu’à l’étoile <span className="text-amber-400">⭐</span></p>
               </div>
-              <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3">
-                <div className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.25em] text-sky-600">Mémoire utilisée</div>
-                <div className="text-2xl font-bold text-sky-700">{program.length}/{currentLevelData.maxBlocks}</div>
-                <div className="text-xs text-sky-600">Blocs en cours</div>
+              <div className="flex shrink-0 gap-2 text-xs font-bold">
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">Par {currentLevelData.par ?? '-'}</span>
+                <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-sky-700">{program.length}/{currentLevelData.maxBlocks} blocs</span>
               </div>
             </div>
-            <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              <div className="mb-2 font-semibold text-slate-900">Astuce du niveau</div>
-              <p>{currentLevelData.hint || 'Aucune astuce disponible pour ce niveau.'}</p>
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              <span className="font-semibold text-slate-900">💡 Astuce : </span>
+              {currentLevelData.hint || 'Observe le plateau avant de choisir tes blocs.'}
             </div>
             {(currentLevelData.requiredTools?.length > 0 || currentLevelData.gate) && (
-              <div className="mb-4 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-800">
-                <div className="mb-2 font-semibold text-violet-950">Conditions de réussite</div>
+              <div className="mt-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-800">
+                <div className="font-semibold text-violet-950">Conditions de réussite</div>
                 {currentLevelData.gate && (
                   <div>💎 Ramasser {currentLevelData.gate.req} cristal{currentLevelData.gate.req > 1 ? 's' : ''}</div>
                 )}
@@ -357,21 +362,17 @@ export default function LevelView({
                 ))}
               </div>
             )}
-            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3 text-sm font-semibold text-sky-700">
-              <div>1️⃣ Ajoute un bloc</div>
-              <div>2️⃣ Supprime-le si besoin</div>
-              <div>3️⃣ Teste ton programme</div>
-            </div>
           </div>
 
-          <div className="border-b border-slate-200 bg-white/80 p-5">
+          <div className="shrink-0 border-b border-slate-200 bg-white/80 p-4">
             <h3 className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.28em] text-fuchsia-500">Outils disponibles</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               {currentLevelData.availableTools.map(tool => (
                 <button key={tool} onClick={() => addBlock(tool)} disabled={isRunning}
                   onMouseEnter={() => setHoveredTool(tool)}
-                  onMouseLeave={() => setHoveredTool(null)}
-                  className={`flex flex-col items-center justify-center gap-1 p-3 rounded-2xl font-bold shadow-md border-2 transition-all duration-150 disabled:opacity-50
+                  onFocus={() => setHoveredTool(tool)}
+                  aria-describedby="tool-description"
+                  className={`flex h-16 flex-col items-center justify-center gap-0.5 rounded-xl border-2 px-2 font-bold shadow-sm transition-[border-color,box-shadow,background-color] duration-150 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 disabled:opacity-50
                     ${tool === 'dash' || tool.startsWith('func') || tool === 'send_clone' ? 'bg-orange-100 border-orange-300 text-orange-700' 
                     : tool === 'if_wall_right' ? 'bg-purple-100 border-purple-300 text-purple-700'
                     : tool === 'auto_path' ? 'bg-cyan-100 border-cyan-300 text-cyan-700'
@@ -381,18 +382,18 @@ export default function LevelView({
                   `}
                   title={renderBlockLabel(tool)}
                 >
-                  <span className="text-3xl">{renderBlockIcon(tool)}</span>
-                  <span className="text-sm font-bold leading-tight">{renderBlockLabel(tool)}</span>
+                  <span className="text-xl leading-none">{renderBlockIcon(tool)}</span>
+                  <span className="text-xs font-bold leading-tight">{renderBlockLabel(tool)}</span>
                 </button>
               ))}
             </div>
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              <div className="mb-1 font-semibold text-slate-900">{hoveredTool ? toolMeta[hoveredTool]?.label : 'Survole un outil pour voir son action.'}</div>
-              <p>{hoveredTool ? toolMeta[hoveredTool]?.description : 'Passe la souris sur un outil pour voir son effet en cours de jeu.'}</p>
+            <div id="tool-description" className="mt-3 h-[72px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" aria-live="polite">
+              <div className="font-semibold text-slate-900">{toolMeta[activeTool]?.label}</div>
+              <p className="leading-snug">{toolMeta[activeTool]?.description}</p>
             </div>
           </div>
 
-          <div className="flex-1 p-5 overflow-y-auto bg-white/70">
+          <div className="min-h-[280px] flex-1 overflow-y-auto bg-white/70 p-4 lg:min-h-0">
             <div className="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <h3 className="text-[11px] font-extrabold uppercase tracking-[0.28em] text-fuchsia-500">Mon programme</h3>
@@ -451,11 +452,11 @@ export default function LevelView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 border-t border-slate-200 bg-slate-50/90 p-5">
-            <button onClick={resetSimulation} disabled={isRunning} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-lg font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-100">
+          <div className="grid shrink-0 grid-cols-2 gap-3 border-t border-slate-200 bg-slate-50/95 p-4 shadow-[0_-8px_20px_rgba(15,23,42,0.06)]">
+            <button onClick={resetSimulation} disabled={isRunning} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-100 sm:text-base">
               🔄 Réinitialiser le robot
             </button>
-            <button onClick={runProgram} disabled={isRunning || program.length === 0} className="w-full rounded-2xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-sky-500 px-4 py-3 text-lg font-bold text-white shadow-[0_10px_24px_rgba(124,58,237,0.25)] transition-all hover:-translate-y-0.5">
+            <button onClick={runProgram} disabled={isRunning || program.length === 0} className="w-full rounded-2xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-sky-500 px-3 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(124,58,237,0.25)] transition-shadow hover:shadow-[0_12px_28px_rgba(124,58,237,0.35)] disabled:cursor-not-allowed disabled:opacity-50 sm:text-base">
               🚀 Tester mon programme
             </button>
           </div>

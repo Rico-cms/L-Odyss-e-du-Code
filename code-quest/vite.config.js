@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import process from 'node:process'
 
 const repoName = 'L-Odyss-e-du-Code'
 const isGithubPages = process.env.GITHUB_ACTIONS === 'true'

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { ChevronRight, CheckCircle, Star, Lock, Gem, Radio, DoorClosed, DoorOpen, RefreshCw, XCircle, Info, Cpu } from "lucide-react";
 
 export default function LevelView({
@@ -27,64 +27,48 @@ export default function LevelView({
   renderBlockLabel,
   setProgram,
   generateRealCode,
+  generateExplanation,
   debugMode,
   setDebugMode,
   debugSnapshot,
 }) {
-  // État local pour forcer la fermeture du modal
-  const [modalOpen, setModalOpen] = useState(false);
   const [hoveredTool, setHoveredTool] = useState(null);
   const modalRef = useRef();
+  const modalOpen = gameStatus === 'success' || gameStatus === 'failure';
+  const explanation = generateExplanation();
 
   const toolMeta = {
     move: { label: 'Avancer', description: 'Avance d’une case dans la direction actuelle.' },
     left: { label: 'Tourner à gauche', description: 'Tourne ton robot de 90° vers la gauche.' },
     right: { label: 'Tourner à droite', description: 'Tourne ton robot de 90° vers la droite.' },
     dash: { label: 'Dash', description: 'Avance autant que possible jusqu’à rencontrer un obstacle.' },
-    if_wall_right: { label: 'Si mur à droite', description: 'Si le chemin est bloqué, tourne. Sinon, avance.' },
-    auto_path: { label: 'Auto-path', description: 'Avance automatiquement en s’arrêtant face aux obstacles.' },
+    if_wall_right: { label: 'Suivre le mur', description: 'Si le passage à droite est libre, tourne à droite. Sinon, avance.' },
+    auto_path: { label: 'Auto-pilote', description: 'Avance jusqu’au prochain obstacle, puis choisit un virage libre.' },
     collect: { label: 'Collecter', description: 'Ramasse un cristal ou un objet sur la case actuelle.' },
     interact: { label: 'Interagir', description: 'Actionne un interrupteur ou un mécanisme sur la case actuelle.' },
     func_stairs: { label: 'Fonction Escalier', description: 'Exécute une série d’actions préprogrammées pour avancer.' },
     send_clone: { label: 'Envoyer clone', description: 'Envoie un clone en ligne droite pour activer un interrupteur.' },
   };
 
-  useEffect(() => {
-    if (gameStatus === 'success' || gameStatus === 'failure') setModalOpen(true);
-    else setModalOpen(false);
-  }, [gameStatus]);
-
-  // Ferme le modal si on clique en dehors du contenu (hors modalRef)
-  useEffect(() => {
-    if (!modalOpen) return;
-    function handleDocClick(e) {
-      if (!modalRef.current) return;
-      if (!modalRef.current.contains(e.target)) {
-        setModalOpen(false);
-        setGameStatus('idle');
-      }
-    }
-    document.addEventListener('mousedown', handleDocClick);
-    return () => document.removeEventListener('mousedown', handleDocClick);
-  }, [modalOpen, setGameStatus]);
-
   const handleCloseModal = () => {
-    setModalOpen(false);
     setGameStatus('idle');
   };
 
   const handleRestart = (e) => {
     e.stopPropagation();
     resetSimulation();
-    setModalOpen(false);
-    setGameStatus('idle');
   };
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(244,114,182,0.16),_transparent_25%),radial-gradient(circle_at_bottom_right,_rgba(96,165,250,0.15),_transparent_30%),linear-gradient(135deg,_#fffaf3_0%,_#f1f8ff_45%,_#f8f2ff_100%)] text-slate-800 flex flex-col">
       <header className="sticky top-0 z-30 flex min-h-[96px] flex-col items-center justify-between gap-4 border-b border-white/70 bg-white/70 px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:flex-row md:px-6">
         <div className="flex items-center gap-4">
-          <button onClick={() => setView(activeModuleInfo.id === 99 ? 'editor' : 'map')} className="flex items-center rounded-full border border-slate-200 bg-white/90 px-3 py-2 text-lg font-bold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5">
+          <button
+            onClick={() => setView(activeModuleInfo.id === 99 ? 'editor' : 'map')}
+            disabled={isRunning}
+            aria-label={activeModuleInfo.id === 99 ? 'Retour à l’éditeur' : 'Retour à la carte'}
+            className="flex items-center rounded-full border border-slate-200 bg-white/90 px-3 py-2 text-lg font-bold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+          >
             <ChevronRight className="rotate-180" size={20} />
           </button>
           <div className="flex flex-col gap-0.5">
@@ -191,9 +175,9 @@ export default function LevelView({
                       {/* Comparaison simple */}
                       <div className="mt-2 text-sm font-semibold">
                         {program.length === currentLevelData.solution.length
-                          ? <span className="text-emerald-300">Bravo, tu as utilisé autant d’étapes que la solution classique !</span>
+                          ? <span className="text-emerald-300">Bravo, tu as utilisé autant d’étapes que la solution classique !</span>
                           : program.length < currentLevelData.solution.length
-                            ? <span className="text-emerald-400">Super, tu as fait plus court que la solution classique !</span>
+                            ? <span className="text-emerald-400">Super, tu as fait plus court que la solution classique !</span>
                             : <span className="text-rose-300">Tu as utilisé {program.length - currentLevelData.solution.length} bloc(s) de plus que la solution classique.</span>
                         }
                       </div>
@@ -212,6 +196,14 @@ export default function LevelView({
                         className="btn-success text-lg px-8 py-3 rounded-2xl shadow-lg"
                       >
                         Niveau suivant
+                      </button>
+                    )}
+                    {gameStatus === 'success' && typeof goToNextLevel !== 'function' && activeModuleInfo.id === 12 && (
+                      <button
+                        onClick={() => setView('map')}
+                        className="btn-success text-lg px-8 py-3 rounded-2xl shadow-lg"
+                      >
+                        Campagne terminée — voir la carte
                       </button>
                     )}
                   </div>
@@ -354,6 +346,17 @@ export default function LevelView({
               <div className="mb-2 font-semibold text-slate-900">Astuce du niveau</div>
               <p>{currentLevelData.hint || 'Aucune astuce disponible pour ce niveau.'}</p>
             </div>
+            {(currentLevelData.requiredTools?.length > 0 || currentLevelData.gate) && (
+              <div className="mb-4 rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-800">
+                <div className="mb-2 font-semibold text-violet-950">Conditions de réussite</div>
+                {currentLevelData.gate && (
+                  <div>💎 Ramasser {currentLevelData.gate.req} cristal{currentLevelData.gate.req > 1 ? 's' : ''}</div>
+                )}
+                {currentLevelData.requiredTools?.map(tool => (
+                  <div key={tool}>🧩 Utiliser « {renderBlockLabel(tool)} » au moins une fois</div>
+                ))}
+              </div>
+            )}
             <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3 text-sm font-semibold text-sky-700">
               <div>1️⃣ Ajoute un bloc</div>
               <div>2️⃣ Supprime-le si besoin</div>
@@ -396,13 +399,13 @@ export default function LevelView({
                 <div className="mt-1 text-[11px] uppercase tracking-[0.2em] text-slate-500">{program.length} blocs / {currentLevelData.maxBlocks}</div>
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
-                <button onClick={() => { setShowExplanation(false); setShowCode(!showCode); }} className="font-bold text-emerald-700 underline transition-colors hover:text-emerald-500">
+                <button onClick={() => { setShowExplanation(false); setShowCode(!showCode); }} disabled={isRunning} className="font-bold text-emerald-700 underline transition-colors hover:text-emerald-500 disabled:cursor-not-allowed disabled:opacity-50">
                   {showCode ? 'Voir les blocs' : 'Voir le code'}
                 </button>
-                <button onClick={() => { setShowCode(false); setShowExplanation(!showExplanation); }} className="font-bold text-sky-700 underline transition-colors hover:text-sky-500">
+                <button onClick={() => { setShowCode(false); setShowExplanation(!showExplanation); }} disabled={isRunning} className="font-bold text-sky-700 underline transition-colors hover:text-sky-500 disabled:cursor-not-allowed disabled:opacity-50">
                   {showExplanation ? 'Masquer l’explication' : 'Expliquer'}
                 </button>
-                <button onClick={() => setProgram([])} className="font-bold text-rose-600 underline transition-colors hover:text-rose-500">Tout effacer</button>
+                <button onClick={() => setProgram([])} disabled={isRunning || program.length === 0} className="font-bold text-rose-600 underline transition-colors hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-50">Tout effacer</button>
               </div>
             </div>
             <div className="min-h-40 space-y-2 rounded-[24px] border-2 border-dashed border-emerald-200 bg-emerald-50/70 p-4">
@@ -416,12 +419,12 @@ export default function LevelView({
                 <div className="space-y-3 rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-800">
                   <div className="font-extrabold uppercase tracking-[0.25em] text-sky-700">Explication pédagogique</div>
                   <p className="leading-relaxed">
-                    {generateRealCode ? generateRealCode() : 'Aucune explication disponible.'}
+                    {explanation.summary}
                   </p>
                   <div className="rounded-xl border border-sky-200 bg-white/80 p-3">
                     <div className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-sky-600">Version algorithmique</div>
                     <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-slate-700">
-                      {generateRealCode ? generateRealCode() : '// Pas encore de logique à montrer'}
+                      {explanation.algorithm}
                     </pre>
                   </div>
                 </div>
@@ -439,7 +442,7 @@ export default function LevelView({
                       <span className="text-2xl">{renderBlockIcon(block.type)}</span>
                       <span className="text-sm font-bold text-slate-700">{renderBlockLabel(block.type)}</span>
                     </span>
-                    <button onClick={() => removeBlock(index)} disabled={isRunning} className="ml-2 rounded-full bg-rose-100 p-1 text-rose-500 shadow transition-colors hover:text-rose-700">
+                    <button onClick={() => removeBlock(index)} disabled={isRunning} aria-label={`Supprimer le bloc ${index + 1} : ${renderBlockLabel(block.type)}`} className="ml-2 rounded-full bg-rose-100 p-1 text-rose-500 shadow transition-colors hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-50">
                       <XCircle size={20} />
                     </button>
                   </div>
@@ -450,7 +453,7 @@ export default function LevelView({
 
           <div className="grid grid-cols-1 gap-3 border-t border-slate-200 bg-slate-50/90 p-5">
             <button onClick={resetSimulation} disabled={isRunning} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-lg font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-100">
-              🔄 Recommencer
+              🔄 Réinitialiser le robot
             </button>
             <button onClick={runProgram} disabled={isRunning || program.length === 0} className="w-full rounded-2xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-sky-500 px-4 py-3 text-lg font-bold text-white shadow-[0_10px_24px_rgba(124,58,237,0.25)] transition-all hover:-translate-y-0.5">
               🚀 Tester mon programme

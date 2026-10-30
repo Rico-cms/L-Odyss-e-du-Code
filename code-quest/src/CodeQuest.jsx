@@ -2,6 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, RotateCcw, ChevronRight, Star, Lock, Map, Code, Info, Terminal, RefreshCw, CheckCircle, XCircle, Zap, Cpu, Activity, BookOpen, Gem, DoorClosed, DoorOpen, Fingerprint, Radio, Copy, Layers, Edit, Save, Trash2, Eye, EyeOff, MousePointer } from 'lucide-react';
 import MainMenu from './MainMenu';
 import LevelView from './LevelView';
+import {
+  createInitialLevelState,
+  expandCommandSteps,
+  getMissingRequirements,
+  getSurpriseState,
+  handleTileInteraction,
+  isLevelComplete,
+  resolveForwardMove,
+  traceClonePath,
+} from './gameEngine';
 
 const MODULES = [ 
   { id: 1, title: "La Séquence", desc: "Donner des ordres dans le bon ordre.", phase: "Logique", color: "from-blue-600 to-blue-700" },
@@ -17,6 +27,8 @@ const MODULES = [
   { id: 11, title: "Clonage", desc: "Envoyer des robots à distance.", phase: "Architecture", color: "from-orange-600 to-orange-700" },
   { id: 12, title: "Projet Final", desc: "Le défi ultime !", phase: "Architecture", color: "from-red-600 to-red-700" },
 ];
+
+const PROGRESS_STORAGE_KEY = 'codeQuestUnlockedModulesV2';
 
 const LEVELS_DATA = {
   1: {
@@ -47,8 +59,8 @@ const LEVELS_DATA = {
     maxBlocks: 8,
     par: 8,
     availableTools: ['move', 'left', 'right'],
-    initialCode: [{ id: 'bug1', type: 'move' }, { id: 'bug2', type: 'move' }, { id: 'bug3', type: 'right' }, { id: 'bug4', type: 'move' }], 
-    hint: "Le mur est moins haut ! Tu peux passer par dessus (y=2).",
+    initialCode: [{ id: 'bug1', type: 'move' }, { id: 'bug2', type: 'move' }, { id: 'bug3', type: 'left' }, { id: 'bug4', type: 'move' }],
+    hint: "Les deux derniers blocs partent du mauvais côté. Supprime-les, puis contourne le mur par le haut.",
     
         pedagogy: {
           concept: "Le Débuggage",
@@ -85,8 +97,9 @@ const LEVELS_DATA = {
     maxBlocks: 10,
     par: 10,
     availableTools: ['move', 'left', 'right', 'if_wall_right'],
+    requiredTools: ['if_wall_right'],
     initialCode: [],
-    hint: "Défi : Faisable en 10 blocs pile !",
+    hint: "Utilise « Suivre le mur » au moins une fois et termine en 10 blocs.",
     
         pedagogy: {
           concept: "Conditions",
@@ -104,6 +117,7 @@ const LEVELS_DATA = {
     maxBlocks: 3,
     par: 1,
     availableTools: ['move', 'left', 'right', 'dash'],
+    requiredTools: ['dash'],
     initialCode: [],
     hint: "Utilise le 'Dash' pour traverser d'un coup.",
     
@@ -121,10 +135,11 @@ const LEVELS_DATA = {
     goal: { x: 5, y: 1 },
     obstacles: [{x:0, y:5}, {x:0, y:4}, {x:0, y:3}, {x:0, y:2}, {x:0, y:1}, {x:2, y:5}, {x:2, y:4}, {x:2, y:3}, {x:2, y:2}, {x:4, y:4}, {x:4, y:3}, {x:4, y:2}, {x:4, y:1}, {x:6, y:5}, {x:6, y:4}, {x:6, y:3}, {x:6, y:2}, {x:6, y:1}, {x:1, y:0}, {x:3, y:6}, {x:5, y:0}, {x:5, y:6}],
     maxBlocks: 12,
-    par: 10,
+    par: 5,
     availableTools: ['move', 'left', 'right', 'auto_path'],
+    requiredTools: ['auto_path'],
     initialCode: [],
-    hint: "L'Auto-Pilote : Avance + Virage intelligent.",
+    hint: "Répète l'Auto-Pilote : il avance jusqu'au mur puis choisit un virage libre.",
     
         pedagogy: {
           concept: "IA / Algorithme Complexe",
@@ -138,12 +153,13 @@ const LEVELS_DATA = {
     gridSize: 6,
     start: { x: 0, y: 0, dir: 1 },
     goal: { x: 5, y: 5 },
-    obstacles: [{x:1, y:1}, {x:2, y:2}, {x:3, y:3}, {x:4, y:4}, {x:5, y:0}, {x:0, y:5}],
-    items: [{ x: 2, y: 0, type: 'crystal' }, { x: 0, y: 2, type: 'crystal' }, { x: 5, y: 3, type: 'crystal' }],
-    gate: { x: 4, y: 5, req: 3 },
+    obstacles: [{x:1, y:1}, {x:2, y:2}, {x:3, y:3}, {x:4, y:4}, {x:0, y:5}],
+    items: [{ x: 2, y: 0, type: 'crystal' }, { x: 4, y: 0, type: 'crystal' }, { x: 5, y: 3, type: 'crystal' }],
+    gate: { x: 5, y: 5, req: 3 },
     maxBlocks: 15,
-    par: 13,
+    par: 14,
     availableTools: ['move', 'left', 'right', 'collect'],
+    requiredTools: ['collect'],
     initialCode: [],
     hint: "Ramasse les 3 cristaux pour ouvrir la porte.",
     
@@ -165,7 +181,7 @@ const LEVELS_DATA = {
     par: 4,
     availableTools: ['move', 'left', 'right'],
     initialCode: [],
-    surprises: [{ x: 4, y: 3, type: 'trap', targetX: 6, targetY: 3, period: 2, phaseOffset: 0 }],
+    surprises: [{ x: 4, y: 3, type: 'trap', targetX: 6, targetY: 3, period: 2, phaseOffset: 1, message: 'Piège activé : téléportation surprise !' }],
     hint: "Marche sur la dalle bleue pour te téléporter, mais attention aux pièges temporaires !",
     
         pedagogy: {
@@ -186,6 +202,7 @@ const LEVELS_DATA = {
     maxBlocks: 12,
     par: 9,
     availableTools: ['move', 'left', 'right', 'interact'],
+    requiredTools: ['interact'],
     initialCode: [],
     hint: "La porte est fermée ! Active l'interrupteur en (0,2) sur ta route.",
     
@@ -212,6 +229,7 @@ const LEVELS_DATA = {
     maxBlocks: 6,
     par: 5,
     availableTools: ['func_stairs'],
+    requiredTools: ['func_stairs'],
     initialCode: [],
     hint: "Le motif se répète 5 fois. Utilise la super-fonction 'Marche' !",
     
@@ -231,13 +249,14 @@ const LEVELS_DATA = {
       {x:3, y:4}, {x:2, y:3}, 
       {x:2, y:2}, {x:4, y:2}, 
       {x:2, y:1}, {x:4, y:1},
-      {x:2, y:0}, {x:4, y:0}, {x:3, y:-1}
+      {x:2, y:0}, {x:4, y:0}
     ],
     switches: [{ x: 3, y: 0, linkId: 1 }],
     doors: [{ x: 4, y: 3, id: 1, state: 'closed' }],
     maxBlocks: 8,
     par: 6,
     availableTools: ['left', 'right', 'send_clone', 'move'],
+    requiredTools: ['send_clone'],
     initialCode: [],
     hint: "Tourne-toi vers le haut et envoie un Clone activer l'interrupteur.",
     
@@ -265,10 +284,11 @@ const LEVELS_DATA = {
     teleporters: [{ x: 0, y: 0, targetX: 7, targetY: 6 }],
     switches: [],
     maxBlocks: 20,
-    par: 9,
+    par: 7,
     availableTools: ['move', 'left', 'right', 'dash', 'auto_path', 'collect', 'func_stairs'],
+    requiredTools: ['dash', 'auto_path', 'collect'],
     initialCode: [],
-    hint: "Cherche le téléporteur caché en haut à gauche (0,0) !",
+    hint: "Rejoins le téléporteur en (0,0), récupère le cristal, puis ouvre la dernière porte.",
     
         pedagogy: {
           concept: "Architecte Logiciel",
@@ -296,68 +316,8 @@ const Button = ({ children, onClick, variant = 'primary', className = '', disabl
 
 export default function CodeQuestApp() {
   const [view, setView] = useState('menu');
-    // --- Helpers pour l'exécution du robot ---
-    const checkCollision = (x, y, currentState) => {
-      if (x < 0 || x >= currentLevelData.gridSize || y < 0 || y >= currentLevelData.gridSize) return 'WALL';
-      if (currentLevelData.obstacles?.some(obs => obs.x === x && obs.y === y)) return 'OBSTACLE';
-      if (currentLevelData.gate && currentLevelData.gate.x === x && currentLevelData.gate.y === y) {
-        if (currentState.itemsCollected < currentLevelData.gate.req) return 'GATE_LOCKED';
-      }
-      if (currentLevelData.doors) {
-        const door = currentLevelData.doors.find(d => d.x === x && d.y === y);
-        if (door && !currentState.doorsOpen.includes(door.id)) return 'DOOR_CLOSED';
-      }
-      return null;
-    };
-
-    const getNextPos = (robot) => {
-      let newX = robot.x;
-      let newY = robot.y;
-      if (robot.dir === 0) newY -= 1;
-      if (robot.dir === 1) newX += 1;
-      if (robot.dir === 2) newY += 1;
-      if (robot.dir === 3) newX -= 1;
-      return { x: newX, y: newY };
-    };
-
-    const getRightPos = (robot) => {
-      const rightDir = (robot.dir + 1) % 4;
-      return getNextPos({ ...robot, dir: rightDir });
-    };
-
-    const getLeftPos = (robot) => {
-      const leftDir = (robot.dir + 3) % 4;
-      return getNextPos({ ...robot, dir: leftDir });
-    };
-
-    const handleTileInteraction = async (entity, currentState) => {
-      let newState = { ...currentState };
-      let actionHappened = false;
-      const item = currentLevelData.items?.find(it => it.x === entity.x && it.y === entity.y && !newState.collectedItemsIds.includes(`${it.x}-${it.y}`));
-      if (item) {
-        newState.itemsCollected += 1;
-        newState.collectedItemsIds.push(`${item.x}-${item.y}`);
-        actionHappened = true;
-      }
-      const switchItem = currentLevelData.switches?.find(s => s.x === entity.x && s.y === entity.y);
-      if (switchItem && !newState.doorsOpen.includes(switchItem.linkId)) {
-        newState.doorsOpen.push(switchItem.linkId);
-        actionHappened = true;
-      }
-      return { newState, actionHappened };
-    };
-
-    const getSurpriseState = (x, y, stepNumber) => {
-      const surprise = currentLevelData.surprises?.find(s => s.x === x && s.y === y);
-      if (!surprise) return null;
-      const period = surprise.period || 2;
-      const phaseOffset = surprise.phaseOffset || 0;
-      const isActive = ((stepNumber + phaseOffset) % period) === 0;
-      return isActive ? surprise : null;
-    };
-
     const buildDebugSnapshot = (command, actionLabel, currentRobot, currentLevelState, stepNumber) => {
-      const surprise = getSurpriseState(currentRobot.x, currentRobot.y, stepNumber);
+      const surprise = getSurpriseState(currentLevelData, currentRobot.x, currentRobot.y, stepNumber);
       return {
         stepNumber,
         commandLabel: renderBlockLabel(command?.type || 'move'),
@@ -381,7 +341,7 @@ export default function CodeQuestApp() {
       setGameStatus('running');
       setFeedbackMsg("Exécution...");
       let currentRobot = { ...currentLevelData.start };
-      let currentLevelState = { itemsCollected: 0, collectedItemsIds: [], doorsOpen: [], clones: [] };
+      let currentLevelState = createInitialLevelState();
       let simulationStep = 0;
       setRobotState(currentRobot);
       setLevelState(currentLevelState);
@@ -389,62 +349,10 @@ export default function CodeQuestApp() {
       await new Promise(r => setTimeout(r, 500));
       for (let i = 0; i < program.length; i++) {
         const command = program[i];
-        let stepsToExecute = [command];
-        if (command.type === 'dash') {
+        let stepsToExecute = expandCommandSteps(currentLevelData, command, currentRobot, currentLevelState, simulationStep);
+        if (command.type === 'send_clone') {
           stepsToExecute = [];
-          let limit = 0;
-          let probeRobot = { ...currentRobot };
-          while (limit < currentLevelData.gridSize) {
-            const next = getNextPos(probeRobot);
-            if (checkCollision(next.x, next.y, currentLevelState)) break;
-            probeRobot = { ...probeRobot, ...next };
-            stepsToExecute.push({ type: 'internal_move' });
-            limit++;
-          }
-        } else if (command.type === 'if_wall_right') {
-          stepsToExecute = [];
-          const rightPos = getRightPos(currentRobot);
-          const rightCollision = checkCollision(rightPos.x, rightPos.y, currentLevelState);
-          if (rightCollision) {
-            stepsToExecute.push({ type: 'internal_move' });
-          } else {
-            stepsToExecute.push({ type: 'right' });
-          }
-        } else if (command.type === 'auto_path') {
-          stepsToExecute = [];
-          let limit = 0;
-          let probeRobot = { ...currentRobot };
-          while (limit < currentLevelData.gridSize) {
-            const next = getNextPos(probeRobot);
-            if (checkCollision(next.x, next.y, currentLevelState)) break;
-            probeRobot = { ...probeRobot, ...next };
-            stepsToExecute.push({ type: 'internal_move' });
-            limit++;
-          }
-          const rightDir = (probeRobot.dir + 1) % 4;
-          const nextRight = getNextPos({ ...probeRobot, dir: rightDir });
-          const leftDir = (probeRobot.dir + 3) % 4;
-          const nextLeft = getNextPos({ ...probeRobot, dir: leftDir });
-          if (!checkCollision(nextRight.x, nextRight.y, currentLevelState)) {
-            stepsToExecute.push({ type: 'right' });
-          } else if (!checkCollision(nextLeft.x, nextLeft.y, currentLevelState)) {
-            stepsToExecute.push({ type: 'left' });
-          }
-        } else if (command.type === 'func_stairs') {
-          stepsToExecute = [{ type: 'internal_move' }, { type: 'right' }, { type: 'internal_move' }, { type: 'left' }];
-        } else if (command.type === 'send_clone') {
-          stepsToExecute = [];
-          const cloneStart = { ...currentRobot, isClone: true };
-          let cloneProbe = { ...cloneStart };
-          let cloneSteps = [];
-          let limit = 0;
-          while (limit < currentLevelData.gridSize) {
-            const next = getNextPos(cloneProbe);
-            if (checkCollision(next.x, next.y, currentLevelState)) break;
-            cloneProbe = { ...cloneProbe, ...next };
-            cloneSteps.push({ ...cloneProbe });
-            limit++;
-          }
+          const cloneSteps = traceClonePath(currentLevelData, currentRobot, currentLevelState);
           if (cloneSteps.length === 0) {
             setFeedbackMsg("Le clone est bloqué par un obstacle !");
             await new Promise(r => setTimeout(r, 500));
@@ -452,7 +360,7 @@ export default function CodeQuestApp() {
           for (const stepPos of cloneSteps) {
             currentLevelState.clones = [stepPos];
             setLevelState({ ...currentLevelState });
-            const res = await handleTileInteraction(stepPos, currentLevelState);
+            const res = handleTileInteraction(currentLevelData, stepPos, currentLevelState, 'interact');
             currentLevelState = res.newState;
             if (res.actionHappened) setLevelState({ ...currentLevelState });
             await new Promise(r => setTimeout(r, 200));
@@ -463,32 +371,30 @@ export default function CodeQuestApp() {
         for (let step of stepsToExecute) {
           let actionLabel = 'Attente';
           if (step.type === 'collect' || step.type === 'interact') {
-            const res = await handleTileInteraction(currentRobot, currentLevelState);
+            const res = handleTileInteraction(currentLevelData, currentRobot, currentLevelState, step.type);
             currentLevelState = res.newState;
             setLevelState({ ...currentLevelState });
-            actionLabel = step.type === 'collect' ? 'Ramasse un objet' : 'Active un mécanisme';
+            actionLabel = step.type === 'collect'
+              ? (res.actionHappened ? 'Ramasse un cristal' : 'Aucun cristal sur cette case')
+              : (res.actionHappened ? 'Active un mécanisme' : 'Aucun mécanisme sur cette case');
+            if (!res.actionHappened) {
+              setFeedbackMsg(step.type === 'collect' ? 'Aucun cristal à ramasser ici.' : 'Aucun mécanisme à actionner ici.');
+            }
             if (res.actionHappened) await new Promise(r => setTimeout(r, 200));
           } else if (step.type === 'move' || step.type === 'internal_move') {
-            const next = getNextPos(currentRobot);
-            const collision = checkCollision(next.x, next.y, currentLevelState);
-            if (collision) {
+            const movement = resolveForwardMove(currentLevelData, currentRobot, currentLevelState, simulationStep + 1);
+            if (movement.collision) {
               setGameStatus('failure');
-              if (collision === 'GATE_LOCKED') setFeedbackMsg("Porte fermée ! Il manque des cristaux.");
-              else if (collision === 'DOOR_CLOSED') setFeedbackMsg("Passage bloqué ! Active l'interrupteur.");
+              if (movement.collision === 'GATE_LOCKED') setFeedbackMsg("Porte fermée ! Il manque des cristaux.");
+              else if (movement.collision === 'DOOR_CLOSED') setFeedbackMsg("Passage bloqué ! Active l'interrupteur.");
               else setFeedbackMsg("BOUM ! Obstacle détecté.");
               setIsRunning(false);
               return;
             }
-            currentRobot = { ...currentRobot, ...next };
-            const teleporter = currentLevelData.teleporters?.find(tp => tp.x === currentRobot.x && tp.y === currentRobot.y);
-            if (teleporter) {
-              await new Promise(r => setTimeout(r, 200));
-              currentRobot = { ...currentRobot, x: teleporter.targetX, y: teleporter.targetY };
-            }
-            const surprise = getSurpriseState(currentRobot.x, currentRobot.y, simulationStep + 1);
-            if (surprise?.type === 'trap') {
-              currentRobot = { ...currentRobot, x: surprise.targetX ?? currentRobot.x, y: surprise.targetY ?? currentRobot.y };
-              setFeedbackMsg(surprise.message || 'Piège activé ! Le robot a été téléporté.');
+            currentRobot = movement.robot;
+            if (movement.teleported) await new Promise(r => setTimeout(r, 200));
+            if (movement.surprise?.type === 'trap') {
+              setFeedbackMsg(movement.surprise.message || 'Piège activé ! Le robot a été téléporté.');
             }
             actionLabel = 'Avance';
           } else if (step.type === 'left') {
@@ -504,7 +410,7 @@ export default function CodeQuestApp() {
           await new Promise(r => setTimeout(r, step.type === 'internal_move' ? 150 : 500));
         }
       }
-      if (currentRobot.x === currentLevelData.goal.x && currentRobot.y === currentLevelData.goal.y) {
+      if (isLevelComplete(currentLevelData, currentRobot, currentLevelState, program)) {
         setGameStatus('success');
         const par = currentLevelData.par || program.length + 2;
         let earnedStars = 1;
@@ -512,16 +418,34 @@ export default function CodeQuestApp() {
         else if (program.length <= par + 2) earnedStars = 2;
         setStars(earnedStars);
         setFeedbackMsg(`OBJECTIF ATTEINT ! (${earnedStars} étoiles)`);
-        if (!unlockedModules.includes(activeModule + 1) && activeModule !== 99) {
-          setUnlockedModules([...unlockedModules, activeModule + 1]);
+        if (activeModule !== 99 && activeModule < MODULES.length) {
+          setUnlockedModules(current => current.includes(activeModule + 1) ? current : [...current, activeModule + 1]);
         }
       } else {
+        const missingRequirements = getMissingRequirements(currentLevelData, currentRobot, currentLevelState, program);
         setGameStatus('failure');
-        setFeedbackMsg("Programme terminé. Objectif non atteint.");
+        if (missingRequirements.includes('items')) {
+          setFeedbackMsg(`Il manque ${currentLevelData.gate.req - currentLevelState.itemsCollected} cristal(s) avant de terminer.`);
+        } else {
+          const missingTool = missingRequirements.find(requirement => requirement.startsWith('tool:'));
+          if (missingTool) {
+            setFeedbackMsg(`Utilise au moins une fois le bloc « ${renderBlockLabel(missingTool.slice(5))} » pour valider ce niveau.`);
+          } else {
+            setFeedbackMsg("Programme terminé. Objectif non atteint.");
+          }
+        }
       }
       setIsRunning(false);
     };
-  const [unlockedModules, setUnlockedModules] = useState([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  const [unlockedModules, setUnlockedModules] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY));
+      const valid = Array.isArray(saved) ? saved.filter(id => MODULES.some(module => module.id === id)) : [];
+      return valid.length > 0 ? valid : [1];
+    } catch {
+      return [1];
+    }
+  });
   const [activeModule, setActiveModule] = useState(1);
   
   const [customLevel, setCustomLevel] = useState(null);
@@ -532,12 +456,7 @@ export default function CodeQuestApp() {
   const [program, setProgram] = useState([]);
   const [robotState, setRobotState] = useState({ x: 0, y: 0, dir: 1 });
   
-  const [levelState, setLevelState] = useState({
-    itemsCollected: 0,
-    collectedItemsIds: [],
-    doorsOpen: [],
-    clones: []
-  });
+  const [levelState, setLevelState] = useState(createInitialLevelState);
 
   const [isRunning, setIsRunning] = useState(false);
   const [gameStatus, setGameStatus] = useState('idle');
@@ -545,11 +464,15 @@ export default function CodeQuestApp() {
   const [stars, setStars] = useState(0); 
   const [showCode, setShowCode] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [debugMode, setDebugMode] = useState(true);
+  const [debugMode, setDebugMode] = useState(false);
   const [debugSnapshot, setDebugSnapshot] = useState(null);
-  const nextBlockIdRef = useRef(1);
+  const nextBlockIdRef = useRef(0);
 
   const currentLevelData = activeModule === 99 ? customLevel : (LEVELS_DATA[activeModule] || LEVELS_DATA[1]);
+
+  useEffect(() => {
+    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(unlockedModules));
+  }, [unlockedModules]);
 
   useEffect(() => {
     if (view === 'level') fullReset();
@@ -568,25 +491,25 @@ export default function CodeQuestApp() {
   const fullReset = () => {
     setRobotState(currentLevelData.start);
     setProgram(currentLevelData.initialCode ? [...currentLevelData.initialCode] : []);
-    setLevelState({ itemsCollected: 0, collectedItemsIds: [], doorsOpen: [], clones: [] });
+    setLevelState(createInitialLevelState());
     setGameStatus('idle');
     setIsRunning(false);
     setFeedbackMsg(currentLevelData.hint || '');
     setStars(0);
+    setShowCode(false);
+    setShowExplanation(false);
     setDebugSnapshot(null);
   };
 
   const resetSimulation = () => {
     setRobotState(currentLevelData.start);
-    setLevelState({ itemsCollected: 0, collectedItemsIds: [], doorsOpen: [], clones: [] });
+    setLevelState(createInitialLevelState());
     setGameStatus('idle');
     setIsRunning(false);
     setFeedbackMsg(currentLevelData.hint || '');
     setDebugSnapshot(null);
   };
 
-  // Générateur d'ID stable pour React (évite Date.now/Math.random)
-  let nextBlockId = 1;
   const addBlock = (type) => {
     if (program.length < currentLevelData.maxBlocks && gameStatus !== 'running') {
       nextBlockIdRef.current += 1;
@@ -667,7 +590,7 @@ export default function CodeQuestApp() {
         case 'dash': return `while (robot.voieLibre()) {\n  robot.avancer();\n}`;
         case 'collect': return 'robot.ramasser();';
         case 'interact': return 'robot.actionner();';
-        case 'if_wall_right': return `if (robot.detecteMurDroite()) {\n  robot.avancer();\n} else {\n  robot.tournerDroite();\n}`;
+        case 'if_wall_right': return `if (robot.passageDroiteLibre()) {\n  robot.tournerDroite();\n} else {\n  robot.avancer();\n}`;
         case 'func_stairs': return `monter_escalier(); // Macro`;
         case 'send_clone': return `const clone = new RobotClone();\nclone.avancerJusquObstacle();`;
         case 'auto_path': return `robot.navigationAuto();`;
@@ -713,7 +636,7 @@ export default function CodeQuestApp() {
       left: 'Gauche',
       right: 'Droite',
       dash: 'Dash (Tant Que)',
-      if_wall_right: 'Si Mur → Droite',
+      if_wall_right: 'Suivre le mur',
       auto_path: 'Auto-Pilote',
       collect: 'Ramasser',
       interact: 'Actionner',
@@ -841,7 +764,8 @@ export default function CodeQuestApp() {
             {MODULES.map((mod) => {
               const isUnlocked = unlockedModules.includes(mod.id);
               return (
-                <div
+                <button
+                  type="button"
                   key={mod.id}
                   onClick={() => {
                     if (isUnlocked) {
@@ -850,7 +774,8 @@ export default function CodeQuestApp() {
                       setView('level');
                     }
                   }}
-                  className={`group relative flex min-h-[220px] cursor-pointer flex-col items-start overflow-hidden rounded-[28px] border border-white/60 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.12)] transition-all duration-300 ${isUnlocked ? 'hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(15,23,42,0.18)]' : 'opacity-60 grayscale'} bg-gradient-to-br ${mod.color}`}
+                  disabled={!isUnlocked}
+                  className={`group relative flex min-h-[220px] flex-col items-start overflow-hidden rounded-[28px] border border-white/60 p-6 text-left shadow-[0_18px_45px_rgba(15,23,42,0.12)] transition-all duration-300 ${isUnlocked ? 'cursor-pointer hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(15,23,42,0.18)]' : 'cursor-not-allowed opacity-60 grayscale'} bg-gradient-to-br ${mod.color}`}
                 >
                   <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/15 transition-transform duration-500 group-hover:scale-150"></div>
                   <span className="playful-pill mb-3 bg-white/30 text-white">{mod.phase}</span>
@@ -860,7 +785,7 @@ export default function CodeQuestApp() {
                     {isUnlocked ? '▶ Débloqué' : '🔒 À venir'}
                   </div>
                   {!isUnlocked && <Lock className="absolute bottom-4 right-4 text-white/70" size={24} />}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -871,13 +796,13 @@ export default function CodeQuestApp() {
 
   if (view === 'level') {
     const activeModuleInfo = activeModule === 99 ? { id: 99, title: "Niveau Personnalisé", desc: "Création joueur" } : MODULES.find(m => m.id === activeModule);
-    const goToNextLevel = () => {
-      if (typeof activeModuleInfo.id === 'number' && activeModuleInfo.id < 12) {
+    const goToNextLevel = activeModuleInfo.id < MODULES.length
+      ? () => {
         setProgram([]);
         setView('level');
         setActiveModule(activeModuleInfo.id + 1);
       }
-    };
+      : undefined;
     return (
       <LevelView
         activeModuleInfo={activeModuleInfo}
@@ -905,6 +830,7 @@ export default function CodeQuestApp() {
         renderBlockLabel={renderBlockLabel}
         setProgram={setProgram}
         generateRealCode={generateRealCode}
+        generateExplanation={generateExplanation}
         debugMode={debugMode}
         setDebugMode={setDebugMode}
         debugSnapshot={debugSnapshot}

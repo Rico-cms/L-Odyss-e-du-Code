@@ -1,9 +1,0 @@
-{
-  "name": "l-odyss-e-du-code-root",
-  "private": true,
-  "scripts": {
-    "build": "npm --prefix code-quest ci && npm --prefix code-quest run build",
-    "lint": "npm --prefix code-quest run lint",
-    "test": "npm --prefix code-quest test"
-  }
-}
